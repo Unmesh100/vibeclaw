@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw Connect — vibeclaw</title>
+    <link rel="stylesheet" href="./shared-styles.css" />
+    <style>
+      .root { display: grid; grid-template-columns: 240px 1fr; gap: 1px; background: var(--border); height: calc(100vh - 44px); }
+
+      /* ── Sidebar ── */
+      .sidebar { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+      .sidebar-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+      .sidebar-title { font-family: var(--mono); font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 6px; }
+      .field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+      .field label { font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+      .field input, .field select { padding: 5px 7px; background: var(--black); border: 1px solid var(--border); color: var(--text-bright); font-family: var(--mono); font-size: 0.65rem; outline: none; width: 100%; }
+      .field input:focus, .field select:focus { border-color: var(--accent-border); }
+      .field input::placeholder { color: #444; }
+      .field input:disabled, .field select:disabled { opacity: 0.4; }
+
+      .status-card { padding: 8px; background: var(--black); border: 1px solid var(--border); }
+      .status-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-family: var(--mono); font-size: 0.58rem; }
+      .status-label { color: var(--text-dim); min-width: 48px; text-transform: uppercase; font-size: 0.5rem; letter-spacing: 0.04em; }
+      .status-val { color: var(--text); }
+      .status-val.on { color: var(--accent); }
+      .status-val.off { color: var(--error); }
+      .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .dot.on { background: var(--accent); box-shadow: 0 0 6px rgba(255,92,92,0.4); }
+      .dot.off { background: var(--border-bright); }
+      .dot.boot { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+      @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+      .session-list { flex: 1; overflow-y: auto; padding: 0 12px 8px; display: flex; flex-direction: column; gap: 3px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .session-card { padding: 7px 9px; background: var(--black); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+      .session-card:hover { border-color: var(--border-bright); }
+      .session-card.active { border-color: var(--accent-border); background: var(--accent-bg); }
+      .sess-row { display: flex; align-items: center; gap: 5px; }
+      .sess-name { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--text-bright); }
+      .sess-key { font-family: var(--mono); font-size: 0.48rem; color: var(--text-dim); margin-left: auto; }
+      .sess-meta { display: flex; align-items: center; gap: 3px; margin-top: 2px; font-family: var(--mono); font-size: 0.48rem; color: var(--text-dim); }
+
+      /* ── Chat ── */
+      .chat-area { display: flex; flex-direction: column; overflow: hidden; background: var(--black); }
+      .chat-header { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--surface); }
+      .chat-header .label { font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+      .chat-msgs { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .msg { max-width: 88%; padding: 10px 14px; font-family: var(--mono); font-size: 0.72rem; line-height: 1.6; border: 1px solid var(--border); word-break: break-word; }
+      .msg.user { align-self: flex-end; background: var(--accent-bg); border-color: var(--accent-border); color: var(--text-bright); }
+      .msg.assistant { align-self: flex-start; background: var(--surface); color: var(--text); }
+      .msg .msg-header { font-size: 0.55rem; color: var(--text-dim); margin-bottom: 4px; }
+      .msg .msg-body { white-space: pre-wrap; }
+      .msg.system { align-self: center; color: var(--text-dim); font-size: 0.6rem; border: none; background: none; padding: 4px; }
+      .msg.thinking { align-self: flex-start; background: var(--surface); color: var(--text-dim); border-style: dashed; }
+      .msg.thinking .msg-body::after { content: '…'; animation: blink 1s infinite; }
+      @keyframes blink { 50% { opacity: 0.3; } }
+
+      .chat-input { display: flex; gap: 0; border-top: 1px solid var(--border); background: var(--surface); }
+      .chat-input input { flex: 1; padding: 12px 14px; background: transparent; border: none; color: var(--text-bright); font-family: var(--mono); font-size: 0.75rem; outline: none; }
+      .chat-input input::placeholder { color: #444; }
+
+      .mode-tabs { display: flex; gap: 0; }
+      .mode-tab { flex: 1; padding: 7px 8px; font-family: var(--mono); font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); background: var(--black); border: none; border-bottom: 2px solid transparent; cursor: pointer; text-align: center; transition: all 0.15s; }
+      .mode-tab:hover { color: var(--text); }
+      .mode-tab.active { color: var(--text-bright); border-bottom-color: var(--accent); background: var(--surface); }
+
+      @media (max-width: 700px) { .root { grid-template-columns: 1fr; } .sidebar { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="demo-topbar">
+      <a href="./index.html" class="back">← demos</a>
+      <span class="sep">/</span>
+      <a href="../index.html" class="logo">🦀 vibeclaw</a>
+      <span class="sep">/</span>
+      <span class="title">OpenClaw Connect</span>
+      <span class="tag" id="modeTag">gateway · live</span>
+    </div>
+
+    <div class="root">
+      <div class="sidebar">
+        <!-- Mode selector -->
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="gateway">🦀 Gateway</button>
+          <button class="mode-tab" data-mode="sandbox">📦 Sandbox</button>
+        </div>
+
+        <!-- Gateway config -->
+        <div id="gatewayConfig">
+          <div class="sidebar-section">
+            <div class="sidebar-title">Gateway Connection</div>
+            <div class="field">
+              <label>URL</label>
+              <input id="gwUrl" type="text" value="local" placeholder="local or ws://host:port" />
+            </div>
+            <div class="field">
+              <label>Token</label>
+              <input id="gwToken" type="password" placeholder="gateway token" />
+            </div>
+            <div style="margin-top:8px;">
+              <button id="connectBtn" class="btn btn-primary" style="width:100%;">Connect</button>
+              <button id="disconnectBtn" class="btn btn-warn" style="width:100%;display:none;">Disconnect</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sandbox config (hidden by default) -->
+        <div id="sandboxConfig" style="display:none;">
+          <div class="sidebar-section">
+            <div class="sidebar-title">Sandbox (In-Browser)</div>
+            <div class="field">
+              <label>Anthropic API Key</label>
+              <input id="apiKey" type="password" placeholder="sk-ant-…" />
+            </div>
+            <div class="field">
+              <label>Model</label>
+              <select id="sandboxModel">
+                <option value="claude-sonnet-4-20250514">claude-sonnet-4</option>
+                <option value="claude-haiku-35-20241022">claude-haiku-3.5</option>
+              </select>
+            </div>
+            <div style="margin-top:8px;">
+              <button id="sandboxLaunchBtn" class="btn btn-primary" style="width:100%;">Launch Sandbox</button>
+              <button id="sandboxStopBtn" class="btn btn-warn" style="width:100%;display:none;">Stop</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">Status</div>
+          <div class="status-card" id="statusCard">
+            <div class="status-row"><span class="status-label">State</span><span class="dot off" id="statusDot"></span><span class="status-val off" id="statusState">Offline</span></div>
+            <div class="status-row"><span class="status-label">Mode</span><span class="status-val" id="statusMode">—</span></div>
+            <div class="status-row"><span class="status-label">Server</span><span class="status-val" id="statusServer">—</span></div>
+            <div class="status-row"><span class="status-label">Msgs</span><span class="status-val" id="statusMsgs">0</span></div>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div class="sidebar-section" style="flex:0;padding-bottom:2px;">
+          <div class="sidebar-title">Sessions</div>
+        </div>
+        <div class="session-list" id="sessionList">
+          <div style="font-family:var(--mono);font-size:0.55rem;color:var(--text-dim);padding:4px 0;">Not connected</div>
+        </div>
+      </div>
+
+      <!-- Chat -->
+      <div class="chat-area">
+        <div class="chat-header">
+          <span class="dot off" id="chatDot"></span>
+          <span class="label" id="chatLabel">OpenClaw Connect</span>
+        </div>
+        <div class="chat-msgs" id="chatMsgs">
+          <div class="msg system">Connect to a gateway or launch a sandbox to begin</div>
+        </div>
+        <div class="chat-input">
+          <input id="chatInput" type="text" placeholder="Message…" disabled />
+          <button id="chatSend" class="btn btn-primary" style="padding:12px 18px;" disabled>Send</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { OpenClawClient } from './openclaw-client.js';
+
+      // ═══════════════════════════════════════
+      //  STATE
+      // ═══════════════════════════════════════
+      let mode = 'gateway'; // 'gateway' | 'sandbox'
+      let client = null;    // OpenClawClient (gateway mode)
+      let manager = null;   // AgentContainerManager (sandbox mode)
+      let gwContainer = null;
+      let state = 'offline'; // offline | connecting | connected | error
+      let activeSession = 'agent:main:main';
+      let sessions = [];
+      let chatHistory = []; // { role, content }
+      let msgCount = 0;
+      let streamingEl = null;
+      let streamingText = '';
+
+      // ═══════════════════════════════════════
+      //  DOM
+      // ═══════════════════════════════════════
+      const $ = id => document.getElementById(id);
+      const el = {
+        gwUrl: $('gwUrl'), gwToken: $('gwToken'),
+        connectBtn: $('connectBtn'), disconnectBtn: $('disconnectBtn'),
+        apiKey: $('apiKey'), sandboxModel: $('sandboxModel'),
+        sandboxLaunchBtn: $('sandboxLaunchBtn'), sandboxStopBtn: $('sandboxStopBtn'),
+        gatewayConfig: $('gatewayConfig'), sandboxConfig: $('sandboxConfig'),
+        statusDot: $('statusDot'), statusState: $('statusState'),
+        statusMode: $('statusMode'), statusServer: $('statusServer'), statusMsgs: $('statusMsgs'),
+        sessionList: $('sessionList'),
+        chatDot: $('chatDot'), chatLabel: $('chatLabel'),
+        chatMsgs: $('chatMsgs'), chatInput: $('chatInput'), chatSend: $('chatSend'),
+        modeTag: $('modeTag'),
+      };
+
+      function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+      // ═══════════════════════════════════════
+      //  MODE SWITCHING
+      // ═══════════════════════════════════════
+      document.querySelectorAll('.mode-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          if (state === 'connected' || state === 'connecting') return; // don't switch while connected
+          document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          mode = tab.dataset.mode;
+          el.gatewayConfig.style.display = mode === 'gateway' ? '' : 'none';
+          el.sandboxConfig.style.display = mode === 'sandbox' ? '' : 'none';
+          el.modeTag.textContent = mode === 'gateway' ? 'gateway · live' : 'sandbox · in-browser';
+        });
+      });
+
+      // ═══════════════════════════════════════
+      //  STATUS
+      // ═══════════════════════════════════════
+      function setState(s, info) {
+        state = s;
+        const dotClass = s === 'connected' ? 'on' : s === 'connecting' ? 'boot' : 'off';
+        el.statusDot.className = `dot ${dotClass}`;
+        el.chatDot.className = `dot ${dotClass}`;
+        el.statusState.className = `status-val ${s === 'connected' ? 'on' : 'off'}`;
+        el.statusState.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+        el.statusMode.textContent = mode === 'gateway' ? 'Gateway' : 'Sandbox';
+        if (info) el.statusServer.textContent = info;
+
+        const connected = s === 'connected';
+        el.chatInput.disabled = !connected;
+        el.chatSend.disabled = !connected;
+
+        if (mode === 'gateway') {
+          el.connectBtn.style.display = connected ? 'none' : '';
+          el.disconnectBtn.style.display = connected ? '' : 'none';
+        } else {
+          el.sandboxLaunchBtn.style.display = connected ? 'none' : '';
+          el.sandboxStopBtn.style.display = connected ? '' : 'none';
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  CHAT UI
+      // ═══════════════════════════════════════
+      function appendMsg(type, sender, text) {
+        const div = document.createElement('div');
+        div.className = `msg ${type}`;
+        if (type === 'system') div.innerHTML = esc(text || sender);
+        else div.innerHTML = `<div class="msg-header">${esc(sender)}</div><div class="msg-body">${esc(text)}</div>`;
+        el.chatMsgs.appendChild(div);
+        el.chatMsgs.scrollTop = el.chatMsgs.scrollHeight;
+        return div;
+      }
+
+      function clearChat() {
+        el.chatMsgs.innerHTML = '';
+        chatHistory = [];
+      }
+
+      // ═══════════════════════════════════════
+      //  SESSIONS
+      // ═══════════════════════════════════════
+      function renderSessions(list) {
+        if (!list || !list.length) {
+          el.sessionList.innerHTML = '<div style="font-family:var(--mono);font-size:0.55rem;color:var(--text-dim);padding:4px 0;">default session</div>';
+          return;
+        }
+        el.sessionList.innerHTML = list.map(s => {
+          const key = s.key || s.sessionKey || s;
+          const sel = key === activeSession ? 'active' : '';
+          const label = typeof s === 'string' ? s : (s.key || s.sessionKey || '?');
+          const tokens = s.totalTokens ? `${s.totalTokens} tok` : '';
+          const pct = s.percentUsed != null ? `${s.percentUsed}%` : '';
+          const meta = [tokens, pct, s.agentId].filter(Boolean).join(' · ');
+          return `<div class="session-card ${sel}" data-key="${esc(key)}">
+            <div class="sess-row"><span class="sess-name">${esc(label)}</span></div>
+            ${meta ? `<div class="sess-meta">${esc(meta)}</div>` : ''}
+          </div>`;
+        }).join('');
+
+        el.sessionList.querySelectorAll('.session-card').forEach(card => {
+          card.addEventListener('click', () => {
+            activeSession = card.dataset.key;
+            renderSessions(sessions);
+            el.chatLabel.textContent = `💬 ${activeSession}`;
+            clearChat();
+            appendMsg('system', '', `Session: ${activeSession}`);
+          });
+        });
+      }
+
+      // ═══════════════════════════════════════
+      //  GATEWAY MODE — connect to live OpenClaw
+      // ═══════════════════════════════════════
+      async function connectGateway() {
+        const rawUrl = el.gwUrl.value.trim();
+        const token = el.gwToken.value.trim();
+        if (!rawUrl) { el.gwUrl.focus(); return; }
+
+        // "local" uses the Vite proxy → forwards to localhost:18789 with correct origin
+        // Works from any IP (192.168.x.x, 100.x.x.x, localhost) because Vite proxies server-side
+        const url = (rawUrl === 'local' || rawUrl === 'localhost')
+          ? `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/openclaw-ws`
+          : rawUrl;
+
+        setState('connecting', url);
+        clearChat();
+        appendMsg('system', '', `Connecting to ${url}…`);
+
+        client = new OpenClawClient({
+          url,
+          token: token || undefined,
+
+          onChat: (payload) => {
+            console.log('[onChat]', payload?.state, JSON.stringify(payload).slice(0, 200));
+
+            // Extract text from delta events
+            // Gateway sends: { state: "delta", message: { role: "assistant", content: "text" | [{type:"text",text:"..."}] } }
+            if (payload?.state === 'delta' && payload?.message) {
+              const msg = payload.message;
+              const content = msg.content;
+              let text = '';
+              if (typeof content === 'string') text = content;
+              else if (Array.isArray(content)) text = content.map(c => c.text || '').join('');
+
+              if (text && text.length > streamingText.length) {
+                streamingText = text; // gateway sends cumulative text, not incremental
+
+                // First text? Swap thinking → assistant
+                if (streamingEl?.classList.contains('thinking')) {
+                  streamingEl.classList.remove('thinking');
+                  streamingEl.classList.add('assistant');
+                  const hdr = streamingEl.querySelector('.msg-header');
+                  if (hdr) hdr.textContent = '🦀 ' + activeSession;
+                }
+                if (streamingEl) {
+                  const body = streamingEl.querySelector('.msg-body');
+                  if (body) body.textContent = streamingText;
+                  el.chatMsgs.scrollTop = el.chatMsgs.scrollHeight;
+                }
+              }
+            }
+
+            if (payload?.state === 'final' || payload?.state === 'aborted') {
+              if (streamingText) {
+                chatHistory.push({ role: 'assistant', content: streamingText });
+                if (streamingEl) {
+                  streamingEl.classList.remove('thinking');
+                  streamingEl.classList.add('assistant');
+                  const hdr = streamingEl.querySelector('.msg-header');
+                  if (hdr) hdr.textContent = '🦀 ' + activeSession;
+                  const body = streamingEl.querySelector('.msg-body');
+                  if (body) body.textContent = streamingText;
+                }
+              } else if (streamingEl) {
+                streamingEl.remove();
+              }
+              streamingEl = null;
+              streamingText = '';
+              el.chatInput.disabled = false;
+              el.chatSend.disabled = false;
+              el.chatInput.focus();
+            }
+
+            if (payload?.state === 'error') {
+              if (streamingEl) streamingEl.remove();
+              appendMsg('system', '', `Error: ${payload.errorMessage || 'unknown'}`);
+              streamingEl = null;
+              streamingText = '';
+              el.chatInput.disabled = false;
+              el.chatSend.disabled = false;
+            }
+          },
+
+          onEvent: (event, payload) => {
+            // Could show events in a log panel later
+          },
+
+          onConnect: async (hello) => {
+            const server = hello?.server?.host || url;
+            setState('connected', server);
+            appendMsg('system', '', `🦀 Connected to ${server}`);
+
+            // Use the main session key from hello if available
+            if (hello?.mainSessionKey) activeSession = hello.mainSessionKey;
+            console.log('[hello]', JSON.stringify(hello).slice(0, 500));
+            el.chatLabel.textContent = `💬 ${activeSession}`;
+
+            // Fetch status → sessions
+            try {
+              const status = await client.status();
+              appendMsg('system', '', `Model: ${status?.sessions?.defaults?.model || '?'} · ${status?.sessions?.count || 0} sessions`);
+              if (status?.sessions?.recent) {
+                sessions = status.sessions.recent;
+                renderSessions(sessions);
+                // Auto-select first session if we don't have one
+                if (sessions.length && !sessions.find(s => (s.key || s.sessionKey) === activeSession)) {
+                  activeSession = sessions[0].key || sessions[0].sessionKey || 'main';
+                  el.chatLabel.textContent = `💬 ${activeSession}`;
+                  renderSessions(sessions);
+                }
+              }
+            } catch (err) {
+              appendMsg('system', '', `Status fetch failed: ${err.message}`);
+            }
+
+            // Fetch agents
+            try {
+              const agentData = await client.agents();
+              const agentList = agentData?.agents || [];
+              if (agentList.length) {
+                appendMsg('system', '', `Agents: ${agentList.map(a => a.id || a.name).join(', ')}`);
+              }
+            } catch (err) {
+              // agents.list may not be supported, that's fine
+            }
+          },
+
+          onDisconnect: ({ code, reason }) => {
+            setState('offline', '');
+            appendMsg('system', '', `Disconnected (${code}): ${reason || 'closed'}`);
+            renderSessions([]);
+          },
+
+          onError: (err) => {
+            setState('error', err.message);
+            appendMsg('system', '', `Error: ${err.message}`);
+          },
+        });
+
+        try {
+          await client.connect();
+        } catch (err) {
+          setState('error', err.message);
+          appendMsg('system', '', `Connection failed: ${err.message}`);
+          client = null;
+        }
+      }
+
+      function disconnectGateway() {
+        if (client) {
+          client.disconnect();
+          client = null;
+        }
+        setState('offline', '');
+        renderSessions([]);
+      }
+
+      async function sendGatewayChat(text) {
+        chatHistory.push({ role: 'user', content: text });
+        appendMsg('user', 'You', text);
+        msgCount++;
+        el.statusMsgs.textContent = msgCount;
+        el.chatInput.disabled = true;
+        el.chatSend.disabled = true;
+
+        // Remove any previous thinking indicator
+        const oldThinking = el.chatMsgs.querySelector('.msg.thinking');
+        if (oldThinking) oldThinking.remove();
+
+        streamingText = '';
+        streamingEl = appendMsg('thinking', '🦀', 'Thinking');
+
+        try {
+          // chat.send resolves when the request is accepted, NOT when streaming is done.
+          // Streaming arrives via onChat events which handle the thinking→assistant swap.
+          await client.chat(text, { sessionKey: activeSession });
+        } catch (err) {
+          streamingEl?.remove();
+          streamingEl = null;
+          streamingText = '';
+          appendMsg('system', '', `Send failed: ${err.message}`);
+          el.chatInput.disabled = false;
+          el.chatSend.disabled = false;
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  SANDBOX MODE — boot in-browser containers
+      // ═══════════════════════════════════════
+      async function launchSandbox() {
+        const key = el.apiKey.value.trim();
+        if (!key) { el.apiKey.focus(); return; }
+
+        setState('connecting', 'sandbox');
+        clearChat();
+        appendMsg('system', '', 'Booting sandbox…');
+
+        try {
+          const { AgentContainerManager } = await import('../src/index.ts');
+
+          // Load VFS snapshot
+          appendMsg('system', '', 'Loading OpenClaw snapshot…');
+          const res = await fetch('/dist/openclaw/openclaw-vfs-snapshot.json');
+          if (!res.ok) throw new Error(`Snapshot not found (${res.status}). Run: npm run openclaw:build`);
+          const snap = await res.json();
+          appendMsg('system', '', `Loaded ${snap.files.length} files`);
+
+          manager = new AgentContainerManager({
+            maxContainers: 10, defaultExecutionTimeoutMs: 30_000,
+            runtime: { dangerouslyAllowSameOrigin: true, useWorker: 'auto' },
+          });
+
+          const info = await manager.spawn({
+            id: 'sandbox-main', vfsSnapshot: snap, cwd: '/data/workspace',
+            env: { ANTHROPIC_API_KEY: key, AGENT_ID: 'main', NODE_ENV: 'production', OPENCLAW_STATE_DIR: '/openclaw' },
+          });
+          gwContainer = info.id;
+
+          await manager.execute(gwContainer, `
+            const loader = require('/openclaw/loader.cjs');
+            loader.registerStubs();
+            loader.setupEnv();
+          `);
+
+          setState('connected', `sandbox (${info.runtimeMode})`);
+          appendMsg('system', '', `📦 Sandbox ready (${info.runtimeMode})`);
+          sessions = [{ key: 'main' }];
+          renderSessions(sessions);
+          el.chatLabel.textContent = '💬 Sandbox';
+        } catch (err) {
+          setState('error', err.message);
+          appendMsg('system', '', `Sandbox failed: ${err.message}`);
+        }
+      }
+
+      async function stopSandbox() {
+        if (manager) { await manager.dispose(); manager = null; gwContainer = null; }
+        setState('offline', '');
+        renderSessions([]);
+      }
+
+      async function sendSandboxChat(text) {
+        chatHistory.push({ role: 'user', content: text });
+        appendMsg('user', 'You', text);
+        msgCount++;
+        el.statusMsgs.textContent = msgCount;
+        el.chatInput.disabled = true;
+        el.chatSend.disabled = true;
+
+        const thinkingEl = appendMsg('thinking', '📦', 'Thinking');
+
+        try {
+          // Get context from container
+          const ctxResult = await manager.execute(gwContainer, `
+            const fs = require('fs'), path = require('path'), cwd = process.cwd();
+            let soul = ''; try { soul = fs.readFileSync(path.join(cwd, 'SOUL.md'), 'utf-8'); } catch {}
+            let memory = ''; try { memory = fs.readFileSync(path.join(cwd, 'MEMORY.md'), 'utf-8'); } catch {}
+            module.exports = { soul, memory: memory.slice(-2000) };
+          `);
+          const ctx = ctxResult.exports || {};
+
+          const model = el.sandboxModel.value;
+          const systemPrompt = [ctx.soul, ctx.memory ? `\n---\nMemory:\n${ctx.memory}` : ''].filter(Boolean).join('\n');
+          const messages = chatHistory.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role, content: m.content }));
+
+          const res = await fetch('/api/anthropic/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': el.apiKey.value, 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages, stream: true }),
+          });
+          if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+
+          thinkingEl.remove();
+          const msgEl = appendMsg('assistant', '📦 Sandbox', '');
+          const bodyEl = msgEl.querySelector('.msg-body');
+          let fullText = '';
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buf = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n'); buf = lines.pop() || '';
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const d = line.slice(6); if (d === '[DONE]') continue;
+              try {
+                const ev = JSON.parse(d);
+                if (ev.type === 'content_block_delta' && ev.delta?.text) {
+                  fullText += ev.delta.text;
+                  if (bodyEl) bodyEl.textContent = fullText;
+                  el.chatMsgs.scrollTop = el.chatMsgs.scrollHeight;
+                }
+              } catch {}
+            }
+          }
+
+          chatHistory.push({ role: 'assistant', content: fullText });
+
+          // Save to container memory
+          await manager.execute(gwContainer, `
+            const fs = require('fs'), path = require('path');
+            const mp = path.join(process.cwd(), 'MEMORY.md');
+            let m = ''; try { m = fs.readFileSync(mp, 'utf-8'); } catch {}
+            fs.writeFileSync(mp, m + '\\n---\\n' + new Date().toISOString() + '\\nUser: ' + ${JSON.stringify(text.slice(0, 200))} + '\\nAssistant: ' + ${JSON.stringify(fullText.slice(0, 400))} + '\\n');
+          `).catch(() => {});
+
+        } catch (err) {
+          thinkingEl.remove();
+          appendMsg('system', '', `Error: ${err.message}`);
+        } finally {
+          el.chatInput.disabled = false;
+          el.chatSend.disabled = false;
+          el.chatInput.focus();
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  SEND (routes to correct mode)
+      // ═══════════════════════════════════════
+      function send() {
+        const text = el.chatInput.value.trim();
+        if (!text || state !== 'connected') return;
+        el.chatInput.value = '';
+        if (mode === 'gateway') sendGatewayChat(text);
+        else sendSandboxChat(text);
+      }
+
+      // ═══════════════════════════════════════
+      //  WIRING
+      // ═══════════════════════════════════════
+      el.connectBtn.addEventListener('click', connectGateway);
+      el.disconnectBtn.addEventListener('click', disconnectGateway);
+      el.sandboxLaunchBtn.addEventListener('click', launchSandbox);
+      el.sandboxStopBtn.addEventListener('click', stopSandbox);
+      el.chatSend.addEventListener('click', send);
+      el.chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+
+      // Persist config
+      const PERSIST = { 'oc-connect-url': 'gwUrl', 'oc-connect-token': 'gwToken', 'oc-connect-apikey': 'apiKey' };
+      for (const [key, elId] of Object.entries(PERSIST)) {
+        try { const v = localStorage.getItem(key); if (v && el[elId]) el[elId].value = v; } catch {}
+        if (el[elId]) el[elId].addEventListener('change', () => { try { localStorage.setItem(key, el[elId].value); } catch {} });
+      }
+    </script>
+  </body>
+</html>

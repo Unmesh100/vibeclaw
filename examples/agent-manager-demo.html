@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agent Container Manager — vibeclaw</title>
+    <link rel="stylesheet" href="./shared-styles.css" />
+    <style>
+      .layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 1px;
+        background: var(--border);
+        height: calc(100vh - 44px);
+      }
+      .sidebar {
+        background: var(--surface);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .sidebar-section {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar-section:last-child { border-bottom: none; }
+      .section-title {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-dim);
+        margin-bottom: 10px;
+      }
+      .container-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow-y: auto;
+        flex: 1;
+        padding: 0 16px 14px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .container-item {
+        padding: 8px 10px;
+        background: var(--black);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        transition: border-color 0.15s;
+      }
+      .container-item:hover { border-color: var(--border-bright); }
+      .container-item.selected {
+        border-color: var(--accent-border);
+        background: var(--accent-bg);
+      }
+      .container-item .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .container-item .id {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-bright);
+      }
+      .container-item .badge {
+        font-family: var(--mono);
+        font-size: 0.58rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        padding: 2px 7px;
+        background: var(--surface-2);
+        color: var(--text-dim);
+        border: 1px solid var(--border);
+      }
+      .container-item .meta {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        color: var(--text-dim);
+        margin-top: 4px;
+      }
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+      }
+      .kpi {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        background: var(--black);
+        border: 1px solid var(--border);
+        padding: 6px 8px;
+        color: var(--text-dim);
+      }
+      .kpi strong {
+        color: var(--text);
+        display: block;
+        margin-bottom: 2px;
+      }
+      .main {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 1px;
+        background: var(--border);
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .field label {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+      }
+      @media (max-width: 768px) {
+        .layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+        .sidebar { max-height: 40vh; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-topbar">
+      <a href="../index.html" class="back">← demos</a>
+      <span class="sep">/</span>
+      <a href="../index.html" class="logo">🦀 vibeclaw</a>
+      <span class="sep">/</span>
+      <span class="title">Agent Container Manager</span>
+      <span class="tag">multi-runtime · orchestration</span>
+    </div>
+
+    <div class="layout">
+      <div class="sidebar">
+        <div class="sidebar-section">
+          <div class="section-title">Actions</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button id="spawnBtn" class="btn btn-primary">Spawn</button>
+            <button id="cloneBtn" class="btn btn-secondary">Clone</button>
+            <button id="terminateBtn" class="btn btn-warn">Terminate</button>
+            <button id="terminateAllBtn" class="btn btn-warn">Terminate All</button>
+          </div>
+        </div>
+        <div class="sidebar-section" style="flex:0;">
+          <div class="section-title">Containers</div>
+        </div>
+        <div id="containerList" class="container-list"></div>
+        <div class="sidebar-section">
+          <div class="section-title">Metrics</div>
+          <div id="metrics" class="kpi-grid"></div>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">Execute Code</span>
+          </div>
+          <div style="padding:14px 16px;">
+            <div class="field">
+              <label for="filename">Filename</label>
+              <input id="filename" type="text" value="/project/task.js" />
+            </div>
+          </div>
+          <textarea id="code" style="min-height:200px;">const fs = require('fs');
+
+if (!fs.existsSync('/project')) {
+  fs.mkdirSync('/project', { recursive: true });
+}
+
+const previous = fs.existsSync('/project/count.txt')
+  ? Number(fs.readFileSync('/project/count.txt', 'utf8'))
+  : 0;
+
+const next = previous + 1;
+fs.writeFileSync('/project/count.txt', String(next));
+
+module.exports = {
+  hello: 'agent-manager',
+  counter: next,
+  cwd: process.cwd(),
+};</textarea>
+          <div class="toolbar">
+            <button id="executeBtn" class="btn btn-primary">Execute</button>
+            <button id="runFileBtn" class="btn btn-secondary">Run File</button>
+            <button id="snapshotBtn" class="btn btn-secondary">Snapshot</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">Result</span>
+          </div>
+          <pre id="result" class="terminal" style="min-height:80px;">(no output yet)</pre>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-label">Manager Events</span>
+          </div>
+          <pre id="logs" class="terminal"></pre>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { AgentContainerManager } from '../src/index.ts';
+
+      const manager = new AgentContainerManager({
+        maxContainers: 12,
+        defaultExecutionTimeoutMs: 15_000,
+        runtime: {
+          dangerouslyAllowSameOrigin: true,
+          useWorker: 'auto',
+        },
+      });
+
+      const state = { selectedId: null };
+
+      const el = {
+        spawnBtn: document.getElementById('spawnBtn'),
+        cloneBtn: document.getElementById('cloneBtn'),
+        terminateBtn: document.getElementById('terminateBtn'),
+        terminateAllBtn: document.getElementById('terminateAllBtn'),
+        executeBtn: document.getElementById('executeBtn'),
+        runFileBtn: document.getElementById('runFileBtn'),
+        snapshotBtn: document.getElementById('snapshotBtn'),
+        containerList: document.getElementById('containerList'),
+        metrics: document.getElementById('metrics'),
+        filename: document.getElementById('filename'),
+        code: document.getElementById('code'),
+        result: document.getElementById('result'),
+        logs: document.getElementById('logs'),
+      };
+
+      function nowTime() { return new Date().toLocaleTimeString(); }
+
+      function log(msg, data) {
+        const suffix = data === undefined ? '' : ` ${safeStringify(data)}`;
+        el.logs.textContent += `[${nowTime()}] ${msg}${suffix}\n`;
+        el.logs.scrollTop = el.logs.scrollHeight;
+      }
+
+      function safeStringify(value) {
+        try {
+          if (typeof value === 'string') return value;
+          return JSON.stringify(value, null, 2);
+        } catch { return String(value); }
+      }
+
+      function setResult(value) {
+        el.result.textContent = typeof value === 'string' ? value : safeStringify(value);
+      }
+
+      function renderMetrics() {
+        const m = manager.getMetrics();
+        const pairs = [
+          ['active', m.activeContainers],
+          ['operations', m.activeOperations],
+          ['created', m.containersCreated],
+          ['terminated', m.containersTerminated],
+          ['started', m.operationsStarted],
+          ['succeeded', m.operationsSucceeded],
+          ['failed', m.operationsFailed],
+          ['timeouts', m.operationTimeouts],
+        ];
+        el.metrics.innerHTML = pairs
+          .map(([k, v]) => `<div class="kpi"><strong>${v}</strong>${k}</div>`)
+          .join('');
+      }
+
+      function renderContainers() {
+        const containers = manager.list();
+        if (containers.length === 0) {
+          el.containerList.innerHTML = `<div style="font-family:var(--mono);font-size:0.68rem;color:var(--text-dim);padding:4px 0;">No containers. Click Spawn.</div>`;
+          state.selectedId = null;
+          renderMetrics();
+          return;
+        }
+        if (!state.selectedId || !containers.some(c => c.id === state.selectedId)) {
+          state.selectedId = containers[0].id;
+        }
+        el.containerList.innerHTML = containers.map((c) => {
+          const sel = c.id === state.selectedId ? 'selected' : '';
+          return `
+            <div class="container-item ${sel}" data-id="${c.id}">
+              <div class="row">
+                <span class="id">${c.id}</span>
+                <span class="badge">${c.status}</span>
+              </div>
+              <div class="meta">mode=${c.runtimeMode} pending=${c.pendingOperations} active=${c.activeOperations}</div>
+            </div>`;
+        }).join('');
+        for (const node of el.containerList.querySelectorAll('.container-item')) {
+          node.addEventListener('click', () => {
+            state.selectedId = node.getAttribute('data-id');
+            renderContainers();
+          });
+        }
+        renderMetrics();
+      }
+
+      function selectedId() {
+        if (!state.selectedId) throw new Error('Select or spawn a container first');
+        return state.selectedId;
+      }
+
+      async function spawnContainer() {
+        const id = `agent-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+        const filename = el.filename.value.trim() || '/project/task.js';
+        const container = await manager.spawn({ id, cwd: '/project', files: { [filename]: el.code.value } });
+        state.selectedId = container.id;
+        log('spawned', { id: container.id, mode: container.runtimeMode });
+        renderContainers();
+      }
+
+      async function cloneSelected() {
+        const cloned = await manager.clone(selectedId(), { id: `clone-${Date.now().toString(36)}` });
+        state.selectedId = cloned.id;
+        log('cloned', { id: cloned.id });
+        renderContainers();
+      }
+
+      async function terminateSelected() {
+        const id = selectedId();
+        await manager.terminate(id);
+        log('terminated', { id });
+        renderContainers();
+      }
+
+      async function executeCode() {
+        const id = selectedId();
+        const filename = el.filename.value.trim() || '/project/task.js';
+        const result = await manager.execute(id, el.code.value, filename);
+        setResult(result.exports);
+        renderContainers();
+      }
+
+      async function runFile() {
+        const id = selectedId();
+        const filename = el.filename.value.trim() || '/project/task.js';
+        const result = await manager.runFile(id, filename);
+        setResult(result.exports);
+        renderContainers();
+      }
+
+      function snapshotSelected() {
+        const id = selectedId();
+        const snapshot = manager.snapshot(id);
+        setResult({ id, fileEntries: snapshot.files.length, sample: snapshot.files.slice(0, 8) });
+      }
+
+      async function terminateAll() {
+        await manager.terminateAll();
+        log('terminated all');
+        renderContainers();
+      }
+
+      function wireManagerEvents() {
+        const events = [
+          'container-created', 'container-ready', 'container-status',
+          'container-error', 'container-terminated', 'container-evicted',
+          'operation-start', 'operation-end',
+        ];
+        for (const eventName of events) {
+          manager.on(eventName, (payload) => { log(eventName, payload); renderContainers(); });
+        }
+      }
+
+      el.spawnBtn.addEventListener('click', () => void spawnContainer().catch(handleError));
+      el.cloneBtn.addEventListener('click', () => void cloneSelected().catch(handleError));
+      el.terminateBtn.addEventListener('click', () => void terminateSelected().catch(handleError));
+      el.terminateAllBtn.addEventListener('click', () => void terminateAll().catch(handleError));
+      el.executeBtn.addEventListener('click', () => void executeCode().catch(handleError));
+      el.runFileBtn.addEventListener('click', () => void runFile().catch(handleError));
+      el.snapshotBtn.addEventListener('click', () => { try { snapshotSelected(); } catch (e) { handleError(e); } });
+
+      function handleError(error) {
+        const message = error instanceof Error ? error.message : String(error);
+        log('error', { message });
+        setResult({ error: message });
+      }
+
+      wireManagerEvents();
+      renderContainers();
+      log('manager ready');
+
+      window.addEventListener('beforeunload', () => { void manager.dispose(); });
+    </script>
+  </body>
+</html>

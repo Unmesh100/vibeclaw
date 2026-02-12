@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenClaw + Qwen2.5-Coder-1.5B WebGPU — almostnode</title>
+    <link rel="stylesheet" href="./shared-styles.css" />
+    <style>
+      /* ═══ Global scale ═══ */
+      html { font-size: 137.5%; } /* 22px base (up from 16px) */
+
+      /* ═══ Root: header + 3-col body ═══ */
+      .root { display: grid; grid-template-columns: 260px 1fr 320px; gap: 1px; background: var(--border); height: calc(100vh - 44px); }
+
+      /* ═══ Left sidebar ═══ */
+      .sidebar { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+      .sidebar-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+      .sidebar-title { font-family: var(--mono); font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 6px; }
+
+      /* Gateway status card */
+      .gw-status { padding: 10px; background: var(--black); border: 1px solid var(--border); }
+      .gw-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+      .gw-label { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; min-width: 52px; }
+      .gw-val { font-family: var(--mono); font-size: 0.65rem; color: var(--text); }
+      .gw-val.on { color: var(--accent); }
+      .gw-val.off { color: var(--error); }
+      .gw-val.warn { color: var(--warn); }
+
+      .gw-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .gw-dot.on { background: var(--accent); box-shadow: 0 0 6px rgba(255,92,92,0.4); }
+      .gw-dot.off { background: var(--border-bright); }
+      .gw-dot.boot { background: var(--warn); animation: pulse 1.2s ease-in-out infinite; }
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+      /* Agent sessions */
+      .session-list { flex: 1; overflow-y: auto; padding: 0 12px 8px; display: flex; flex-direction: column; gap: 3px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .session-card { padding: 7px 9px; background: var(--black); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+      .session-card:hover { border-color: var(--border-bright); }
+      .session-card.active { border-color: var(--accent-border); background: var(--accent-bg); }
+      .sess-row { display: flex; align-items: center; gap: 5px; }
+      .sess-emoji { font-size: 0.85rem; }
+      .sess-name { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--text-bright); }
+      .sess-role { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); margin-left: auto; }
+      .sess-meta { display: flex; align-items: center; gap: 3px; margin-top: 2px; font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); }
+      .sess-bar { height: 2px; background: var(--border); margin-top: 4px; overflow: hidden; }
+      .sess-bar .fill { height: 100%; background: var(--accent); transition: width 0.5s; }
+
+      /* Workspace browser */
+      .ws-tree { flex: 1; overflow-y: auto; padding: 0 12px 8px; display: flex; flex-direction: column; gap: 1px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .ws-item { font-family: var(--mono); font-size: 0.6rem; padding: 3px 6px; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background 0.1s; }
+      .ws-item:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+      .ws-item.active { color: var(--accent); background: var(--accent-bg); }
+      .ws-item .ws-icon { width: 12px; text-align: center; flex-shrink: 0; }
+      .ws-item.dir { color: var(--text); font-weight: 500; }
+      .ws-indent-1 { padding-left: 16px; }
+      .ws-indent-2 { padding-left: 28px; }
+      .ws-indent-3 { padding-left: 40px; }
+
+      /* Config fields */
+      .cfg-field { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+      .cfg-field label { font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+      .cfg-field input, .cfg-field select { padding: 5px 7px; background: var(--black); border: 1px solid var(--border); color: var(--text-bright); font-family: var(--mono); font-size: 0.65rem; outline: none; width: 100%; }
+      .cfg-field input:focus, .cfg-field select:focus { border-color: var(--accent-border); }
+      .cfg-field input::placeholder { color: #444; }
+      .cfg-field input[type="number"] { width: 70px; }
+      .cfg-row { display: flex; gap: 6px; }
+      .cfg-row .cfg-field { flex: 1; }
+
+      /* Collapsible config sections */
+      .cfg-group { border-bottom: 1px solid var(--border); }
+      .cfg-group-header { display: flex; align-items: center; gap: 5px; padding: 7px 12px; cursor: pointer; user-select: none; transition: background 0.1s; }
+      .cfg-group-header:hover { background: rgba(255,255,255,0.02); }
+      .cfg-group-header .cfg-chevron { font-size: 0.55rem; color: var(--text-dim); transition: transform 0.15s; width: 10px; }
+      .cfg-group-header .cfg-group-label { font-family: var(--mono); font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+      .cfg-group-header .cfg-group-badge { font-family: var(--mono); font-size: 0.45rem; padding: 1px 5px; background: var(--accent-bg); color: var(--accent-dim); border: 1px solid var(--accent-border); margin-left: auto; }
+      .cfg-group.open .cfg-chevron { transform: rotate(90deg); }
+      .cfg-group-body { display: none; padding: 4px 12px 8px; }
+      .cfg-group.open .cfg-group-body { display: block; }
+
+      /* Toggle switch */
+      .cfg-toggle { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; cursor: pointer; }
+      .cfg-toggle input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+      .cfg-toggle span { font-family: var(--mono); font-size: 0.58rem; color: var(--text); }
+      .cfg-toggle .cfg-toggle-sub { font-size: 0.5rem; color: var(--text-dim); }
+
+      /* Agent config row */
+      .cfg-agent { display: flex; align-items: center; gap: 6px; padding: 4px 6px; background: var(--black); border: 1px solid var(--border); margin-bottom: 3px; }
+      .cfg-agent .agent-emoji { font-size: 0.8rem; flex-shrink: 0; }
+      .cfg-agent .agent-info { flex: 1; min-width: 0; }
+      .cfg-agent .agent-name { font-family: var(--mono); font-size: 0.62rem; font-weight: 600; color: var(--text-bright); }
+      .cfg-agent .agent-detail { font-family: var(--mono); font-size: 0.48rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .cfg-agent select { width: 100px; padding: 2px 4px; font-size: 0.55rem; }
+      .cfg-agent .cfg-toggle { margin: 0; }
+
+      /* Config JSON viewer */
+      .cfg-json { background: var(--black); border: 1px solid var(--border); padding: 6px 8px; font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); line-height: 1.5; max-height: 120px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+      /* ═══ Center: main chat + file viewer ═══ */
+      .center { display: flex; flex-direction: column; overflow: hidden; background: var(--black); }
+
+      /* Tab bar (chat / file / logs) */
+      .center-tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+      .center-tab { padding: 8px 14px; font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; }
+      .center-tab:hover { color: var(--text); }
+      .center-tab.active { color: var(--text-bright); border-bottom-color: var(--accent); }
+
+      .center-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+      .center-pane { flex: 1; display: none; flex-direction: column; overflow: hidden; }
+      .center-pane.active { display: flex; }
+
+      /* Chat view */
+      .chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .msg { max-width: 88%; padding: 10px 14px; font-family: var(--mono); font-size: 0.72rem; line-height: 1.6; border: 1px solid var(--border); word-break: break-word; }
+      .msg.user { align-self: flex-end; background: var(--accent-bg); border-color: var(--accent-border); color: var(--text-bright); }
+      .msg.assistant { align-self: flex-start; background: var(--surface); color: var(--text); }
+      .msg .msg-header { font-size: 0.55rem; color: var(--text-dim); margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+      .msg .msg-body { white-space: pre-wrap; }
+      .msg .msg-body code { background: rgba(255,255,255,0.06); padding: 1px 4px; font-size: 0.68rem; }
+      .msg .msg-body pre { background: rgba(0,0,0,0.4); padding: 8px; margin: 6px 0; overflow-x: auto; font-size: 0.65rem; line-height: 1.5; border: 1px solid var(--border); }
+      .msg.system { align-self: center; color: var(--text-dim); font-size: 0.6rem; border: none; background: none; padding: 4px; }
+      .msg.thinking { align-self: flex-start; background: var(--surface); color: var(--text-dim); border-style: dashed; }
+      .msg.thinking .msg-body::after { content: '…'; animation: blink 1s infinite; }
+      .msg.tool-use { align-self: flex-start; background: rgba(232,200,114,0.06); border-color: rgba(232,200,114,0.15); color: var(--warn); font-size: 0.6rem; padding: 6px 10px; }
+      .msg.tool-use .tool-name { font-weight: 600; color: var(--warn); }
+      .msg.reasoning { align-self: flex-start; background: rgba(148,163,184,0.06); border-color: rgba(148,163,184,0.15); color: var(--text-dim); font-size: 0.62rem; padding: 8px 12px; border-style: dashed; }
+      .msg.reasoning .msg-header { color: #94a3b8; }
+      @keyframes blink { 50% { opacity: 0.3; } }
+
+      .chat-input-bar { display: flex; gap: 0; border-top: 1px solid var(--border); background: var(--surface); }
+      .chat-input-bar input { flex: 1; padding: 12px 14px; background: transparent; border: none; color: var(--text-bright); font-family: var(--mono); font-size: 0.75rem; outline: none; }
+      .chat-input-bar input::placeholder { color: #444; }
+      .chat-input-bar .btn { padding: 12px 18px; }
+
+      /* File viewer */
+      .file-viewer { flex: 1; overflow-y: auto; padding: 16px; font-family: var(--mono); font-size: 0.7rem; line-height: 1.7; color: var(--text); white-space: pre-wrap; word-break: break-word; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .file-viewer .line-num { display: inline-block; width: 32px; color: #444; text-align: right; margin-right: 12px; user-select: none; }
+      .file-path-bar { padding: 6px 12px; background: rgba(0,0,0,0.3); border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+      .file-path-bar .path { color: var(--text); }
+
+      /* Log viewer */
+      .log-viewer { flex: 1; overflow-y: auto; padding: 8px 12px; font-family: var(--mono); font-size: 0.62rem; line-height: 1.6; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .log-line { padding: 1px 0; }
+      .log-line .ts { color: #555; }
+      .log-line .level-info { color: var(--text-dim); }
+      .log-line .level-ok { color: var(--accent); }
+      .log-line .level-warn { color: var(--warn); }
+      .log-line .level-err { color: var(--error); }
+
+      /* ═══ Right panel: tools + context ═══ */
+      .right-panel { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+      .right-tabs { display: flex; background: var(--black); border-bottom: 1px solid var(--border); }
+      .right-tab { padding: 7px 12px; font-family: var(--mono); font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); cursor: pointer; border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.15s; }
+      .right-tab:hover { color: var(--text); }
+      .right-tab.active { color: var(--text-bright); border-bottom-color: var(--accent); }
+
+      .right-body { flex: 1; overflow: hidden; }
+      .right-pane { display: none; flex-direction: column; overflow: hidden; height: 100%; }
+      .right-pane.active { display: flex; }
+
+      /* Tools panel */
+      .tool-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .tool-item { padding: 6px 8px; background: var(--black); border: 1px solid var(--border); font-family: var(--mono); transition: border-color 0.15s; }
+      .tool-item:hover { border-color: var(--border-bright); }
+      .tool-name { font-size: 0.62rem; font-weight: 600; color: var(--text-bright); }
+      .tool-desc { font-size: 0.52rem; color: var(--text-dim); margin-top: 1px; }
+      .tool-badge { display: inline-block; padding: 1px 4px; font-size: 0.45rem; text-transform: uppercase; background: var(--accent-bg); color: var(--accent-dim); border: 1px solid var(--accent-border); }
+      .tool-badge.native { background: rgba(232,200,114,0.06); color: var(--warn); border-color: rgba(232,200,114,0.15); }
+
+      /* Context / memory panel */
+      .context-list { flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .ctx-item { padding: 6px 8px; background: var(--black); border: 1px solid var(--border); }
+      .ctx-label { font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-dim); margin-bottom: 2px; }
+      .ctx-body { font-family: var(--mono); font-size: 0.58rem; color: var(--text); line-height: 1.5; white-space: pre-wrap; max-height: 120px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+      /* Metrics panel */
+      .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 8px; }
+      .metric-card { padding: 8px; background: var(--black); border: 1px solid var(--border); text-align: center; }
+      .metric-val { font-family: var(--mono); font-size: 1rem; font-weight: 700; color: var(--text-bright); }
+      .metric-label { font-family: var(--mono); font-size: 0.48rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-top: 2px; }
+      .metric-spark { height: 16px; margin-top: 4px; display: flex; align-items: flex-end; gap: 1px; }
+      .metric-spark .bar { flex: 1; background: var(--accent-border); min-height: 1px; transition: height 0.3s; }
+
+      /* Loading overlay */
+      .loading-overlay { position: fixed; inset: 0; background: rgba(12,12,12,0.94); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.3s; }
+      .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+      .loading-spinner { font-size: 2rem; margin-bottom: 12px; }
+      .loading-text { font-family: var(--mono); font-size: 0.78rem; color: var(--text-dim); }
+      .loading-sub { font-family: var(--mono); font-size: 0.6rem; color: var(--text-dim); margin-top: 4px; }
+      .progress-bar { width: 180px; height: 2px; background: var(--border); margin-top: 12px; overflow: hidden; }
+      .progress-bar .fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
+
+      .boot-log { margin-top: 16px; font-family: var(--mono); font-size: 0.58rem; color: var(--text-dim); max-height: 120px; overflow-y: auto; text-align: left; width: 340px; }
+      .boot-line { padding: 1px 0; }
+      .boot-line.ok { color: var(--accent); }
+      .boot-line.err { color: var(--error); }
+
+      /* Responsive */
+      @media (max-width: 1100px) {
+        .root { grid-template-columns: 220px 1fr; }
+        .right-panel { display: none; }
+      }
+      @media (max-width: 700px) {
+        .root { grid-template-columns: 1fr; }
+        .sidebar { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-topbar">
+      <a href="./index.html" class="back">← demos</a>
+      <span class="sep">/</span>
+      <a href="../index.html" class="logo">🦀 vibeclaw</a>
+      <span class="sep">/</span>
+      <span class="title">OpenClaw + Qwen2.5-Coder-1.5B WebGPU</span>
+      <span class="tag">openclaw · webgpu · qwen2.5-coder-1.5b · local</span>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loading-spinner">🦀</div>
+      <div class="loading-text" id="loadingText">Initialising gateway…</div>
+      <div class="loading-sub" id="loadingSub"></div>
+      <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+      <div class="boot-log" id="bootLog"></div>
+    </div>
+
+    <div class="root">
+      <!-- ═══ Left sidebar ═══ -->
+      <div class="sidebar">
+        <form id="gwConfigForm" autocomplete="off" onsubmit="return false;">
+
+          <!-- ── Model Info ── -->
+          <div class="cfg-group open">
+            <div class="cfg-group-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="cfg-chevron">▶</span>
+              <span class="cfg-group-label">Local Model</span>
+              <span class="cfg-group-badge">webgpu</span>
+            </div>
+            <div class="cfg-group-body">
+              <div class="cfg-field">
+                <label>Model</label>
+                <input type="text" value="Qwen2.5-Coder-1.5B (WebGPU)" disabled style="color:var(--accent);" />
+              </div>
+              <div style="font-family:var(--mono);font-size:0.5rem;color:var(--text-dim);padding:4px 0;line-height:1.5;">
+                1.5B parameter model running entirely in your browser via WebGPU. No API keys needed.
+                First run downloads ~900MB of model files.
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Runtime ── -->
+          <div class="cfg-group open">
+            <div class="cfg-group-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="cfg-chevron">▶</span>
+              <span class="cfg-group-label">Runtime</span>
+            </div>
+            <div class="cfg-group-body">
+              <div class="cfg-field">
+                <label>Container Runtime</label>
+                <select id="cfgRuntime">
+                  <option value="almostnode-worker">almostnode (Worker)</option>
+                  <option value="almostnode-main">almostnode (Main Thread)</option>
+                  <option value="almostnode-sandbox">almostnode (Sandbox)</option>
+                  <option value="webcontainer">WebContainer</option>
+                </select>
+              </div>
+              <div id="runtimeInfo" style="font-family:var(--mono);font-size:0.5rem;color:var(--text-dim);padding:2px 0;">
+                Web Worker — non-blocking, same-origin
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Gateway ── -->
+          <div class="cfg-group open">
+            <div class="cfg-group-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="cfg-chevron">▶</span>
+              <span class="cfg-group-label">Gateway</span>
+            </div>
+            <div class="cfg-group-body">
+              <div class="cfg-row">
+                <div class="cfg-field">
+                  <label>Port</label>
+                  <input id="cfgPort" type="number" value="18789" min="1024" max="65535" />
+                </div>
+                <div class="cfg-field">
+                  <label>Mode</label>
+                  <select id="cfgMode">
+                    <option value="local">Local</option>
+                    <option value="remote">Remote</option>
+                  </select>
+                </div>
+              </div>
+              <div class="cfg-field">
+                <label>Bind</label>
+                <select id="cfgBind">
+                  <option value="lan">LAN</option>
+                  <option value="localhost">Localhost</option>
+                  <option value="0.0.0.0">All interfaces</option>
+                </select>
+              </div>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgChatCompletions" checked />
+                <span>Chat Completions endpoint</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- ── Agents ── -->
+          <div class="cfg-group">
+            <div class="cfg-group-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="cfg-chevron">▶</span>
+              <span class="cfg-group-label">Agents</span>
+              <span class="cfg-group-badge">4</span>
+            </div>
+            <div class="cfg-group-body">
+              <div class="cfg-row">
+                <div class="cfg-field">
+                  <label>Max Concurrent</label>
+                  <input id="cfgMaxConcurrent" type="number" value="4" min="1" max="16" />
+                </div>
+                <div class="cfg-field">
+                  <label>Max Subagents</label>
+                  <input id="cfgMaxSubagents" type="number" value="8" min="1" max="32" />
+                </div>
+              </div>
+              <div class="cfg-field">
+                <label>Compaction</label>
+                <select id="cfgCompaction">
+                  <option value="safeguard">Safeguard</option>
+                  <option value="aggressive">Aggressive</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div style="margin-top:6px;">
+                <div class="cfg-agent">
+                  <span class="agent-emoji">🦞</span>
+                  <div class="agent-info">
+                    <div class="agent-name">Clawe</div>
+                    <div class="agent-detail">Squad Lead · /data/workspace</div>
+                  </div>
+                  <label class="cfg-toggle"><input type="checkbox" id="cfgAgent_main" checked /><span></span></label>
+                </div>
+                <div class="cfg-agent">
+                  <span class="agent-emoji">✍️</span>
+                  <div class="agent-info">
+                    <div class="agent-name">Inky</div>
+                    <div class="agent-detail">Content Writer · /data/workspace-inky</div>
+                  </div>
+                  <label class="cfg-toggle"><input type="checkbox" id="cfgAgent_inky" checked /><span></span></label>
+                </div>
+                <div class="cfg-agent">
+                  <span class="agent-emoji">🎨</span>
+                  <div class="agent-info">
+                    <div class="agent-name">Pixel</div>
+                    <div class="agent-detail">Graphic Designer · /data/workspace-pixel</div>
+                  </div>
+                  <label class="cfg-toggle"><input type="checkbox" id="cfgAgent_pixel" checked /><span></span></label>
+                </div>
+                <div class="cfg-agent">
+                  <span class="agent-emoji">🔍</span>
+                  <div class="agent-info">
+                    <div class="agent-name">Scout</div>
+                    <div class="agent-detail">SEO Specialist · /data/workspace-scout</div>
+                  </div>
+                  <label class="cfg-toggle"><input type="checkbox" id="cfgAgent_scout" checked /><span></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Tools ── -->
+          <div class="cfg-group">
+            <div class="cfg-group-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="cfg-chevron">▶</span>
+              <span class="cfg-group-label">Tools</span>
+            </div>
+            <div class="cfg-group-body">
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgAgentToAgent" checked />
+                <span>Agent-to-Agent</span>
+              </label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgNativeCommands" checked />
+                <span>Native Commands</span>
+              </label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgNativeSkills" checked />
+                <span>Native Skills</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- ── Hooks ── -->
+          <div class="cfg-group">
+            <div class="cfg-group-header" onclick="this.parentElement.classList.toggle('open')">
+              <span class="cfg-chevron">▶</span>
+              <span class="cfg-group-label">Hooks</span>
+            </div>
+            <div class="cfg-group-body">
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgSessionMemory" checked />
+                <span>Session Memory</span>
+              </label>
+              <label class="cfg-toggle">
+                <input type="checkbox" id="cfgInternalHooks" checked />
+                <span>Internal Hooks</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Launch / Stop -->
+          <div style="padding:8px 12px;">
+            <button id="launchBtn" type="button" class="btn btn-primary" style="width:100%;">Launch Gateway</button>
+            <button id="stopBtn" type="button" class="btn btn-warn" style="width:100%;display:none;">Stop Gateway</button>
+          </div>
+        </form>
+
+        <!-- Gateway status -->
+        <div class="sidebar-section">
+          <div class="sidebar-title">Status</div>
+          <div class="gw-status" id="gwStatus">
+            <div class="gw-row"><span class="gw-label">State</span><span class="gw-dot off" id="gwDot"></span><span class="gw-val off" id="gwState">Offline</span></div>
+            <div class="gw-row"><span class="gw-label">Runtime</span><span class="gw-val" id="gwRuntime">—</span></div>
+            <div class="gw-row"><span class="gw-label">Port</span><span class="gw-val" id="gwPort">18789</span></div>
+            <div class="gw-row"><span class="gw-label">Mode</span><span class="gw-val" id="gwMode">local</span></div>
+            <div class="gw-row"><span class="gw-label">Model</span><span class="gw-val" id="gwModelState">Not loaded</span></div>
+            <div class="gw-row"><span class="gw-label">TPS</span><span class="gw-val" id="gwTPS">—</span></div>
+            <div class="gw-row"><span class="gw-label">Msgs</span><span class="gw-val" id="gwMsgs">0</span></div>
+            <div class="gw-row"><span class="gw-label">Tokens</span><span class="gw-val" id="gwTokens">0</span></div>
+          </div>
+        </div>
+
+        <!-- Agent sessions -->
+        <div class="sidebar-section" style="flex:0;padding-bottom:2px;">
+          <div class="sidebar-title">Agent Sessions</div>
+        </div>
+        <div class="session-list" id="sessionList"></div>
+
+        <!-- Workspace -->
+        <div class="sidebar-section" style="flex:0;padding-bottom:2px;">
+          <div class="sidebar-title">Workspace</div>
+        </div>
+        <div class="ws-tree" id="wsTree" style="max-height:180px;"></div>
+      </div>
+
+      <!-- ═══ Center ═══ -->
+      <div class="center">
+        <div class="center-tabs">
+          <button class="center-tab active" data-pane="chat">💬 Chat</button>
+          <button class="center-tab" data-pane="file">📄 File</button>
+          <button class="center-tab" data-pane="logs">📋 Logs</button>
+        </div>
+        <div class="center-body">
+          <!-- Chat pane -->
+          <div class="center-pane active" id="pane-chat">
+            <div class="chat-messages" id="chatMessages">
+              <div class="msg system">Launch the gateway to begin</div>
+            </div>
+            <div class="chat-input-bar">
+              <input id="chatInput" type="text" placeholder="Message the gateway…" disabled />
+              <button id="chatSend" class="btn btn-primary" disabled>Send</button>
+            </div>
+          </div>
+          <!-- File pane -->
+          <div class="center-pane" id="pane-file">
+            <div class="file-path-bar"><span class="ws-icon">📄</span> <span class="path" id="filePath">No file selected</span></div>
+            <div class="file-viewer" id="fileViewer">Click a file in the workspace tree to view it here.</div>
+          </div>
+          <!-- Logs pane -->
+          <div class="center-pane" id="pane-logs">
+            <div class="log-viewer" id="logViewer">
+              <div class="log-line"><span class="ts">[--:--:--]</span> <span class="level-info">Gateway not started</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ Right panel ═══ -->
+      <div class="right-panel">
+        <div class="right-tabs">
+          <button class="right-tab active" data-pane="tools">Tools</button>
+          <button class="right-tab" data-pane="context">Context</button>
+          <button class="right-tab" data-pane="metrics">Metrics</button>
+        </div>
+        <div class="right-body">
+          <!-- Tools pane -->
+          <div class="right-pane active" id="rpane-tools">
+            <div class="tool-list" id="toolList"></div>
+          </div>
+          <!-- Context pane -->
+          <div class="right-pane" id="rpane-context">
+            <div class="context-list" id="contextList"></div>
+          </div>
+          <!-- Metrics pane -->
+          <div class="right-pane" id="rpane-metrics">
+            <div class="metrics-grid" id="metricsGrid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { AgentContainerManager } from '../src/index.ts';
+      import {
+        pipeline,
+        TextStreamer,
+        InterruptableStoppingCriteria,
+      } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.0.0-next.3';
+
+      // ═══════════════════════════════════════
+      //  HARMONY STREAM PARSER (inlined from web-llm)
+      // ═══════════════════════════════════════
+      const SPECIAL_TOKENS = {
+        START: "<|start|>",
+        END: "<|end|>",
+        MESSAGE: "<|message|>",
+        CHANNEL: "<|channel|>",
+        CONSTRAIN: "<|constrain|>",
+        RETURN: "<|return|>",
+        CALL: "<|call|>",
+      };
+
+      const State = {
+        IDLE: "IDLE",
+        HEADER_ROLE: "HEADER_ROLE",
+        HEADER_CHANNEL: "HEADER_CHANNEL",
+        HEADER_CONSTRAIN: "HEADER_CONSTRAIN",
+        CONTENT: "CONTENT",
+      };
+
+      class HarmonyStreamParser {
+        messages = [];
+        _state = State.IDLE;
+        _buf = "";
+        _done = false;
+
+        get _current() { return this.messages.at(-1); }
+
+        _newMessage(init = {}) {
+          const msg = {
+            role: "",
+            channel: "",
+            content: "",
+            endReason: "pending",
+            ...init,
+          };
+          this.messages.push(msg);
+          return {
+            type: "new_message",
+            messageIndex: this.messages.length - 1,
+            message: { ...msg },
+          };
+        }
+
+        _closeMessage(reason) {
+          const msg = this._current;
+          if (msg) {
+            msg.content = msg.content.trimEnd();
+            msg.endReason = reason;
+          }
+          this._state = State.IDLE;
+          this._buf = "";
+          return {
+            type: "done",
+            messageIndex: this.messages.length - 1,
+            endReason: reason,
+            isDone: reason === "return",
+          };
+        }
+
+        _extractRecipient(text) {
+          const match = text.match(/\bto=(\S+)/);
+          if (match && this._current) {
+            this._current.recipient = match[1];
+            return text.replace(match[0], "").trim();
+          }
+          return text.trim();
+        }
+
+        push(token) {
+          if (this._done) return null;
+
+          switch (token) {
+            case SPECIAL_TOKENS.START:
+              this._buf = "";
+              this._state = State.HEADER_ROLE;
+              if (!this._current || this._current.endReason !== "pending") {
+                return this._newMessage();
+              }
+              return null;
+
+            case SPECIAL_TOKENS.CHANNEL:
+              this._buf = "";
+              this._state = State.HEADER_CHANNEL;
+              if (!this._current || this._current.endReason !== "pending") {
+                return this._newMessage({ role: "assistant" });
+              }
+              return null;
+
+            case SPECIAL_TOKENS.CONSTRAIN:
+              this._buf = "";
+              this._state = State.HEADER_CONSTRAIN;
+              return null;
+
+            case SPECIAL_TOKENS.MESSAGE:
+              this._buf = "";
+              this._state = State.CONTENT;
+              return null;
+
+            case SPECIAL_TOKENS.END:
+              return this._closeMessage("end");
+
+            case SPECIAL_TOKENS.RETURN:
+              this._done = true;
+              return this._closeMessage("return");
+
+            case SPECIAL_TOKENS.CALL:
+              return this._closeMessage("call");
+          }
+
+          switch (this._state) {
+            case State.HEADER_ROLE: {
+              this._buf += token;
+              const cleaned = this._extractRecipient(this._buf);
+              if (this._current) this._current.role = cleaned;
+              return null;
+            }
+
+            case State.HEADER_CHANNEL: {
+              this._buf += token;
+              const cleaned = this._extractRecipient(this._buf);
+              if (this._current) this._current.channel = cleaned;
+              return null;
+            }
+
+            case State.HEADER_CONSTRAIN: {
+              this._buf += token;
+              if (this._current) this._current.contentType = this._buf.trim();
+              return null;
+            }
+
+            case State.CONTENT: {
+              if (this._current) {
+                this._current.content += token;
+              }
+              return {
+                type: "content",
+                messageIndex: this.messages.length - 1,
+                textDelta: token,
+              };
+            }
+
+            default:
+              return null;
+          }
+        }
+
+        reset() {
+          this.messages = [];
+          this._state = State.IDLE;
+          this._buf = "";
+          this._done = false;
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  CONSTANTS
+      // ═══════════════════════════════════════
+      const MODEL_ID = "onnx-community/qwen2.5-coder-1.5b-ONNX";
+      const TOTAL_FILE_SIZE = 12651938001;
+
+      const AGENTS = [
+        { id: 'main',  name: 'Clawe', emoji: '🦞', role: 'Squad Lead',       cwd: '/data/workspace',       session: 'agent:main:main'  },
+        { id: 'inky',  name: 'Inky',  emoji: '✍️',  role: 'Content Writer',   cwd: '/data/workspace-inky',  session: 'agent:inky:main'  },
+        { id: 'pixel', name: 'Pixel', emoji: '🎨', role: 'Graphic Designer', cwd: '/data/workspace-pixel', session: 'agent:pixel:main' },
+        { id: 'scout', name: 'Scout', emoji: '🔍', role: 'SEO Specialist',   cwd: '/data/workspace-scout', session: 'agent:scout:main' },
+      ];
+
+      const GATEWAY_TOOLS = [
+        { name: 'Read',              desc: 'Read file contents from the workspace',   badge: 'core' },
+        { name: 'Write',             desc: 'Create or overwrite files',               badge: 'core' },
+        { name: 'Edit',              desc: 'Surgical find-and-replace edits',          badge: 'core' },
+        { name: 'Bash',              desc: 'Execute shell commands via just-bash',     badge: 'core' },
+        { name: 'Grep',              desc: 'Search file contents for patterns',        badge: 'core' },
+        { name: 'LS',                desc: 'List directory contents',                  badge: 'core' },
+        { name: 'AgentToAgent',      desc: 'Coordinate with other squad agents',       badge: 'native' },
+        { name: 'TaskCreate',        desc: 'Create tasks for the squad',               badge: 'native' },
+        { name: 'TaskUpdate',        desc: 'Update task status and assignments',       badge: 'native' },
+        { name: 'WebFetch',          desc: 'Fetch URLs and extract content',           badge: 'native' },
+      ];
+
+      // ═══════════════════════════════════════
+      //  STATE
+      // ═══════════════════════════════════════
+      let manager = null;
+      let gatewayContainer = null;
+      let agentContainers = new Map();
+      let activeAgent = 'main';
+      let chatHistories = new Map();
+      let gwStartTime = null;
+      let gwMessageCount = 0;
+      let gwTokenCount = 0;
+      let gwState = 'offline';
+      let snapshot = null;
+      let logs = [];
+      let metricsHistory = [];
+
+      // WebGPU LLM state
+      let generatorPromise = null;
+      let generatorInstance = null;
+      let modelLoaded = false;
+      let currentTPS = 0;
+      let stoppingCriteria = new InterruptableStoppingCriteria();
+
+      // ═══════════════════════════════════════
+      //  DOM
+      // ═══════════════════════════════════════
+      const $ = id => document.getElementById(id);
+      const el = {
+        cfgRuntime: $('cfgRuntime'), runtimeInfo: $('runtimeInfo'),
+        cfgPort: $('cfgPort'), cfgMode: $('cfgMode'), cfgBind: $('cfgBind'),
+        cfgChatCompletions: $('cfgChatCompletions'),
+        cfgMaxConcurrent: $('cfgMaxConcurrent'),
+        cfgMaxSubagents: $('cfgMaxSubagents'), cfgCompaction: $('cfgCompaction'),
+        cfgAgent_main: $('cfgAgent_main'), cfgAgent_inky: $('cfgAgent_inky'),
+        cfgAgent_pixel: $('cfgAgent_pixel'), cfgAgent_scout: $('cfgAgent_scout'),
+        cfgAgentToAgent: $('cfgAgentToAgent'), cfgNativeCommands: $('cfgNativeCommands'), cfgNativeSkills: $('cfgNativeSkills'),
+        cfgSessionMemory: $('cfgSessionMemory'), cfgInternalHooks: $('cfgInternalHooks'),
+        launchBtn: $('launchBtn'), stopBtn: $('stopBtn'),
+        gwDot: $('gwDot'), gwState: $('gwState'), gwRuntime: $('gwRuntime'), gwPort: $('gwPort'), gwMode: $('gwMode'),
+        gwModelState: $('gwModelState'), gwTPS: $('gwTPS'), gwMsgs: $('gwMsgs'), gwTokens: $('gwTokens'),
+        sessionList: $('sessionList'), wsTree: $('wsTree'),
+        chatMessages: $('chatMessages'), chatInput: $('chatInput'), chatSend: $('chatSend'),
+        filePath: $('filePath'), fileViewer: $('fileViewer'),
+        logViewer: $('logViewer'),
+        toolList: $('toolList'), contextList: $('contextList'), metricsGrid: $('metricsGrid'),
+        loadingOverlay: $('loadingOverlay'), loadingText: $('loadingText'), loadingSub: $('loadingSub'),
+        progressFill: $('progressFill'), bootLog: $('bootLog'),
+      };
+
+      function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function now() { return new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' }); }
+      function agentById(id) { return AGENTS.find(a => a.id === id); }
+
+      // ═══════════════════════════════════════
+      //  RUNTIME SELECTOR
+      // ═══════════════════════════════════════
+      const RUNTIME_DESCRIPTIONS = {
+        'almostnode-worker': 'Web Worker — non-blocking, same-origin, ~50KB',
+        'almostnode-main':   'Main thread — simplest, same-origin, synchronous',
+        'almostnode-sandbox':'Cross-origin iframe — secure isolation, needs sandbox URL',
+        'webcontainer':      'StackBlitz WebContainer — full Linux userland, ~2MB, real fs/network',
+      };
+      el.cfgRuntime.addEventListener('change', () => {
+        el.runtimeInfo.textContent = RUNTIME_DESCRIPTIONS[el.cfgRuntime.value] || '';
+      });
+
+      function getRuntimeOptions() {
+        switch (el.cfgRuntime.value) {
+          case 'almostnode-worker':
+            return { dangerouslyAllowSameOrigin: true, useWorker: true };
+          case 'almostnode-main':
+            return { dangerouslyAllowSameOrigin: true, useWorker: false };
+          case 'almostnode-sandbox':
+            return { sandbox: window.location.origin + '/__sandbox__.html' };
+          case 'webcontainer':
+            return { _webcontainer: true };
+          default:
+            return { dangerouslyAllowSameOrigin: true, useWorker: 'auto' };
+        }
+      }
+
+      function getEnabledAgents() {
+        return AGENTS.filter(a => el[`cfgAgent_${a.id}`]?.checked);
+      }
+
+      // ═══════════════════════════════════════
+      //  WEBGPU CHECK & MODEL LOADING
+      // ═══════════════════════════════════════
+      async function checkWebGPU() {
+        if (!navigator.gpu) {
+          throw new Error('WebGPU not available in this browser. Try Chrome/Edge 113+ or enable chrome://flags/#enable-unsafe-webgpu');
+        }
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) {
+          throw new Error('WebGPU adapter not found. Your GPU may not be supported.');
+        }
+        return adapter;
+      }
+
+      async function loadModel(onProgress) {
+        if (generatorInstance) return generatorInstance;
+        if (generatorPromise) return generatorPromise;
+
+        generatorPromise = (async () => {
+          const fileProgress = new Map();
+
+          const gen = await pipeline("text-generation", MODEL_ID, {
+            dtype: "q4f16",
+            device: "webgpu",
+            progress_callback: (p) => {
+              if (p.status === "progress" && typeof p.loaded === "number") {
+                fileProgress.set(p.file, p.loaded);
+                const loaded = Array.from(fileProgress.values()).reduce((a, b) => a + b, 0);
+                const progress = (loaded / TOTAL_FILE_SIZE) * 100;
+                if (onProgress) onProgress(progress, p.file);
+              }
+            },
+          });
+
+          generatorInstance = gen;
+          modelLoaded = true;
+          el.gwModelState.textContent = 'Loaded';
+          el.gwModelState.className = 'gw-val on';
+          return gen;
+        })();
+
+        return generatorPromise;
+      }
+
+      // ═══════════════════════════════════════
+      //  BOOT LOG
+      // ═══════════════════════════════════════
+      function bootLine(msg, cls = '') {
+        const div = document.createElement('div');
+        div.className = `boot-line ${cls}`;
+        div.textContent = `[${now()}] ${msg}`;
+        el.bootLog.appendChild(div);
+        el.bootLog.scrollTop = el.bootLog.scrollHeight;
+      }
+
+      function setProgress(pct, text, sub) {
+        el.progressFill.style.width = pct + '%';
+        if (text) el.loadingText.textContent = text;
+        if (sub !== undefined) el.loadingSub.textContent = sub;
+      }
+
+      // ═══════════════════════════════════════
+      //  LOGGING
+      // ═══════════════════════════════════════
+      function log(level, msg) {
+        logs.push({ ts: now(), level, msg });
+        if (logs.length > 500) logs.shift();
+        renderLogs();
+      }
+
+      function renderLogs() {
+        el.logViewer.innerHTML = logs.map(l =>
+          `<div class="log-line"><span class="ts">[${l.ts}]</span> <span class="level-${l.level}">${esc(l.msg)}</span></div>`
+        ).join('');
+        el.logViewer.scrollTop = el.logViewer.scrollHeight;
+      }
+
+      // ═══════════════════════════════════════
+      //  TAB SWITCHING
+      // ═══════════════════════════════════════
+      function initTabs(containerSelector, tabAttr, panePrefix) {
+        document.querySelectorAll(containerSelector).forEach(tab => {
+          tab.addEventListener('click', () => {
+            document.querySelectorAll(containerSelector).forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.querySelectorAll(`[id^="${panePrefix}"]`).forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(`${panePrefix}${tab.dataset.pane}`);
+            if (target) target.classList.add('active');
+          });
+        });
+      }
+      initTabs('.center-tab', 'pane', 'pane-');
+      initTabs('.right-tab', 'pane', 'rpane-');
+
+      // ═══════════════════════════════════════
+      //  GATEWAY STATUS
+      // ═══════════════════════════════════════
+      function setGwState(state) {
+        gwState = state;
+        el.gwDot.className = `gw-dot ${state === 'running' ? 'on' : state === 'booting' ? 'boot' : 'off'}`;
+        el.gwState.className = `gw-val ${state === 'running' ? 'on' : state === 'booting' ? 'warn' : 'off'}`;
+        el.gwState.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+        el.launchBtn.style.display = (state === 'running' || state === 'booting') ? 'none' : '';
+        el.stopBtn.style.display = (state === 'running') ? '' : 'none';
+        el.chatInput.disabled = state !== 'running';
+        el.chatSend.disabled = state !== 'running';
+
+        const locked = state === 'running' || state === 'booting';
+        document.querySelectorAll('#gwConfigForm input, #gwConfigForm select').forEach(input => {
+          if (input.id === 'chatInput') return;
+          input.disabled = locked;
+        });
+      }
+
+      let uptimeInterval;
+      function startUptimeTimer() {
+        gwStartTime = Date.now();
+        clearInterval(uptimeInterval);
+        uptimeInterval = setInterval(() => {
+          if (gwState !== 'running') return;
+          const s = Math.floor((Date.now() - gwStartTime) / 1000);
+          const m = Math.floor(s / 60);
+          const h = Math.floor(m / 60);
+        }, 1000);
+      }
+
+      function updateMetrics() {
+        el.gwMsgs.textContent = gwMessageCount;
+        el.gwTokens.textContent = gwTokenCount > 1000 ? `${(gwTokenCount/1000).toFixed(1)}k` : gwTokenCount;
+        el.gwTPS.textContent = currentTPS > 0 ? `${currentTPS}` : '—';
+      }
+
+      // ═══════════════════════════════════════
+      //  AGENT SESSIONS
+      // ═══════════════════════════════════════
+      function renderSessions() {
+        if (agentContainers.size === 0) {
+          el.sessionList.innerHTML = '<div style="font-family:var(--mono);font-size:0.55rem;color:var(--text-dim);padding:4px 0;">No active sessions</div>';
+          return;
+        }
+        el.sessionList.innerHTML = AGENTS.map(a => {
+          const cid = agentContainers.get(a.id);
+          if (!cid) return '';
+          const info = manager?.get(cid);
+          const status = info ? info.status : 'off';
+          const msgs = (chatHistories.get(a.id) || []).length;
+          const sel = a.id === activeAgent ? 'active' : '';
+          return `<div class="session-card ${sel}" data-agent="${a.id}">
+            <div class="sess-row">
+              <span class="sess-emoji">${a.emoji}</span>
+              <span class="sess-name">${a.name}</span>
+              <span class="sess-role">${a.role}</span>
+            </div>
+            <div class="sess-meta">
+              <span class="gw-dot ${status === 'ready' ? 'on' : 'off'}"></span> ${status}
+              · ${a.session}
+              · ${msgs} msgs
+            </div>
+            <div class="sess-bar"><div class="fill" style="width:${Math.min(100, msgs * 8)}%"></div></div>
+          </div>`;
+        }).join('');
+
+        el.sessionList.querySelectorAll('.session-card').forEach(card => {
+          card.addEventListener('click', () => {
+            activeAgent = card.dataset.agent;
+            renderSessions();
+            renderChat();
+            renderContext();
+          });
+        });
+      }
+
+      // ═══════════════════════════════════════
+      //  WORKSPACE TREE
+      // ═══════════════════════════════════════
+      async function renderWorkspaceTree() {
+        if (!gatewayContainer) { el.wsTree.innerHTML = ''; return; }
+
+        try {
+          const result = await manager.execute(gatewayContainer, `
+            const fs = require('fs'); const path = require('path');
+            function walk(dir, depth) {
+              if (depth > 3) return [];
+              const entries = [];
+              try {
+                for (const name of fs.readdirSync(dir).sort()) {
+                  const full = path.join(dir, name);
+                  try {
+                    const stat = fs.statSync(full);
+                    entries.push({ name, path: full, isDir: stat.isDirectory(), depth });
+                    if (stat.isDirectory() && depth < 2) entries.push(...walk(full, depth + 1));
+                  } catch {}
+                }
+              } catch {}
+              return entries;
+            }
+            module.exports = walk('/data', 0);
+          `);
+          const items = result.exports || [];
+          el.wsTree.innerHTML = items.map(item => {
+            const icon = item.isDir ? '📁' : '📄';
+            const cls = item.isDir ? 'dir' : '';
+            const indent = `ws-indent-${Math.min(item.depth, 3)}`;
+            return `<div class="ws-item ${cls} ${indent}" data-path="${esc(item.path)}" data-isdir="${item.isDir}">
+              <span class="ws-icon">${icon}</span> ${esc(item.name)}
+            </div>`;
+          }).join('');
+
+          el.wsTree.querySelectorAll('.ws-item:not(.dir)').forEach(item => {
+            item.addEventListener('click', () => viewFile(item.dataset.path));
+          });
+        } catch (err) {
+          el.wsTree.innerHTML = `<div style="font-family:var(--mono);font-size:0.55rem;color:var(--error);padding:4px;">Error: ${esc(err.message)}</div>`;
+        }
+      }
+
+      async function viewFile(filePath) {
+        el.filePath.textContent = filePath;
+        document.querySelectorAll('.center-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('.center-tab[data-pane="file"]').classList.add('active');
+        document.querySelectorAll('[id^="pane-"]').forEach(p => p.classList.remove('active'));
+        $('pane-file').classList.add('active');
+
+        el.wsTree.querySelectorAll('.ws-item').forEach(i => i.classList.remove('active'));
+        el.wsTree.querySelector(`[data-path="${CSS.escape(filePath)}"]`)?.classList.add('active');
+
+        try {
+          const result = await manager.execute(gatewayContainer, `
+            const fs = require('fs');
+            module.exports = fs.readFileSync(${JSON.stringify(filePath)}, 'utf-8');
+          `);
+          const content = result.exports || '';
+          const lines = content.split('\n');
+          el.fileViewer.innerHTML = lines.map((line, i) =>
+            `<span class="line-num">${i + 1}</span>${esc(line)}`
+          ).join('\n');
+        } catch (err) {
+          el.fileViewer.innerHTML = `<span style="color:var(--error);">Error reading file: ${esc(err.message)}</span>`;
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  TOOLS PANEL
+      // ═══════════════════════════════════════
+      function renderTools() {
+        el.toolList.innerHTML = GATEWAY_TOOLS.map(t => `
+          <div class="tool-item">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span class="tool-name">${t.name}</span>
+              <span class="tool-badge ${t.badge}">${t.badge}</span>
+            </div>
+            <div class="tool-desc">${t.desc}</div>
+          </div>
+        `).join('');
+      }
+      renderTools();
+
+      // ═══════════════════════════════════════
+      //  CONTEXT PANEL
+      // ═══════════════════════════════════════
+      async function renderContext() {
+        if (!gatewayContainer) {
+          el.contextList.innerHTML = '<div style="font-family:var(--mono);font-size:0.55rem;color:var(--text-dim);padding:4px;">Gateway not running</div>';
+          return;
+        }
+
+        const agent = agentById(activeAgent);
+        const cid = agentContainers.get(activeAgent);
+        if (!cid) return;
+
+        try {
+          const result = await manager.execute(cid, `
+            const fs = require('fs'); const path = require('path'); const cwd = process.cwd();
+            let soul = ''; try { soul = fs.readFileSync(path.join(cwd, 'SOUL.md'), 'utf-8'); } catch {}
+            let memory = ''; try { memory = fs.readFileSync(path.join(cwd, 'MEMORY.md'), 'utf-8'); } catch {}
+            let heartbeat = ''; try { heartbeat = fs.readFileSync(path.join(cwd, 'HEARTBEAT.md'), 'utf-8'); } catch {}
+            let agents = ''; try { agents = fs.readFileSync(path.join(cwd, 'AGENTS.md'), 'utf-8'); } catch {}
+            let tools = ''; try { tools = fs.readFileSync(path.join(cwd, 'TOOLS.md'), 'utf-8'); } catch {}
+            let user = ''; try { user = fs.readFileSync(path.join(cwd, 'USER.md'), 'utf-8'); } catch {}
+            module.exports = { soul, memory, heartbeat, agents, tools, user };
+          `);
+          const ctx = result.exports || {};
+          const items = [
+            { label: `${agent.emoji} Soul`, body: ctx.soul },
+            { label: 'Heartbeat', body: ctx.heartbeat },
+            { label: 'Memory', body: ctx.memory },
+            { label: 'Agents', body: ctx.agents },
+            { label: 'Tools', body: ctx.tools },
+            { label: 'User', body: ctx.user },
+          ].filter(i => i.body);
+
+          el.contextList.innerHTML = items.map(i =>
+            `<div class="ctx-item"><div class="ctx-label">${esc(i.label)}</div><div class="ctx-body">${esc(i.body)}</div></div>`
+          ).join('');
+        } catch (err) {
+          el.contextList.innerHTML = `<div style="color:var(--error);font-family:var(--mono);font-size:0.55rem;padding:4px;">Error: ${esc(err.message)}</div>`;
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  METRICS PANEL
+      // ═══════════════════════════════════════
+      function renderMetrics() {
+        const upSecs = gwStartTime ? Math.floor((Date.now() - gwStartTime) / 1000) : 0;
+        const tokPerMsg = gwMessageCount > 0 ? Math.round(gwTokenCount / gwMessageCount) : 0;
+
+        metricsHistory.push({ ts: Date.now(), msgs: gwMessageCount, tokens: gwTokenCount });
+        if (metricsHistory.length > 20) metricsHistory.shift();
+
+        const sparkBars = (values) => {
+          const max = Math.max(...values, 1);
+          return values.map(v => `<div class="bar" style="height:${Math.max(1, (v/max)*16)}px"></div>`).join('');
+        };
+
+        const msgValues = metricsHistory.map((h, i, a) => i === 0 ? 0 : h.msgs - a[i-1].msgs);
+        const tokValues = metricsHistory.map((h, i, a) => i === 0 ? 0 : h.tokens - a[i-1].tokens);
+
+        el.metricsGrid.innerHTML = `
+          <div class="metric-card"><div class="metric-val">${gwMessageCount}</div><div class="metric-label">Messages</div><div class="metric-spark">${sparkBars(msgValues)}</div></div>
+          <div class="metric-card"><div class="metric-val">${gwTokenCount > 1000 ? (gwTokenCount/1000).toFixed(1)+'k' : gwTokenCount}</div><div class="metric-label">Tokens</div><div class="metric-spark">${sparkBars(tokValues)}</div></div>
+          <div class="metric-card"><div class="metric-val">${currentTPS > 0 ? currentTPS : '—'}</div><div class="metric-label">TPS</div></div>
+          <div class="metric-card"><div class="metric-val">${tokPerMsg}</div><div class="metric-label">Tok / Msg</div></div>
+          <div class="metric-card"><div class="metric-val">${agentContainers.size}</div><div class="metric-label">Containers</div></div>
+          <div class="metric-card"><div class="metric-val">${upSecs > 60 ? Math.floor(upSecs/60) + 'm' : upSecs + 's'}</div><div class="metric-label">Uptime</div></div>
+        `;
+      }
+
+      // ═══════════════════════════════════════
+      //  CHAT
+      // ═══════════════════════════════════════
+      function getHistory(agentId) {
+        if (!chatHistories.has(agentId)) chatHistories.set(agentId, []);
+        return chatHistories.get(agentId);
+      }
+
+      function appendMsg(type, sender, text) {
+        const div = document.createElement('div');
+        div.className = `msg ${type}`;
+        if (type === 'system') { div.innerHTML = esc(text || sender); }
+        else if (type === 'tool-use') { div.innerHTML = `<span class="tool-name">🔧 ${esc(sender)}</span> ${esc(text)}`; }
+        else { div.innerHTML = `<div class="msg-header">${esc(sender)}</div><div class="msg-body">${esc(text)}</div>`; }
+        el.chatMessages.appendChild(div);
+        el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
+        return div;
+      }
+
+      function renderChat() {
+        const agent = agentById(activeAgent);
+        el.chatMessages.innerHTML = '';
+        const h = getHistory(activeAgent);
+        if (!h.length) {
+          appendMsg('system', '', `💬 Chat with ${agent.emoji} ${agent.name} — ${agent.role}`);
+          if (gwState === 'running') {
+            appendMsg('system', '', `Session: ${agent.session} · Workspace: ${agent.cwd} · Model: Qwen2.5-Coder-1.5B (WebGPU)`);
+          }
+        } else {
+          for (const m of h) {
+            if (m.type === 'tool-use') appendMsg('tool-use', m.tool, m.content);
+            else if (m.type === 'reasoning') appendMsg('reasoning', `${agent.emoji} ${agent.name} · reasoning`, m.content);
+            else appendMsg(m.role === 'user' ? 'user' : 'assistant', m.role === 'user' ? 'You' : `${agent.emoji} ${agent.name}`, m.content);
+          }
+        }
+      }
+
+      async function sendChat() {
+        const text = el.chatInput.value.trim();
+        if (!text || gwState !== 'running') return;
+        el.chatInput.value = '';
+
+        const agent = agentById(activeAgent);
+        const cid = agentContainers.get(activeAgent);
+        if (!cid) return;
+
+        const history = getHistory(activeAgent);
+        history.push({ role: 'user', content: text });
+        appendMsg('user', 'You', text);
+        gwMessageCount++;
+        updateMetrics();
+        log('info', `→ ${agent.name}: "${text.slice(0, 80)}${text.length > 80 ? '…' : ''}"`);
+
+        el.chatInput.disabled = true;
+        el.chatSend.disabled = true;
+
+        const thinkingEl = appendMsg('thinking', `${agent.emoji} ${agent.name}`, 'Thinking');
+
+        try {
+          // Ensure model is loaded
+          if (!modelLoaded) {
+            thinkingEl.querySelector('.msg-body').textContent = 'Loading model…';
+            await loadModel((progress, file) => {
+              thinkingEl.querySelector('.msg-body').textContent = `Loading model… ${Math.round(progress)}%`;
+            });
+          }
+
+          const generator = generatorInstance;
+
+          // Build context
+          const ctxResult = await manager.execute(cid, `
+            const fs = require('fs'); const path = require('path'); const cwd = process.cwd();
+            let soul = ''; try { soul = fs.readFileSync(path.join(cwd, 'SOUL.md'), 'utf-8'); } catch {}
+            let memory = ''; try { memory = fs.readFileSync(path.join(cwd, 'MEMORY.md'), 'utf-8'); } catch {}
+            let working = ''; try { working = fs.readFileSync(path.join(cwd, 'shared/WORKING.md'), 'utf-8'); } catch {}
+            let files = []; try { files = fs.readdirSync(cwd); } catch {}
+            module.exports = { soul, memory: memory.slice(-3000), working, files: files.join(', ') };
+          `);
+          const ctx = ctxResult.exports || {};
+
+          const systemPrompt = [
+            ctx.soul,
+            '\n---\n## Live Context',
+            `You are ${agent.emoji} ${agent.name}, ${agent.role}.`,
+            `You are running inside an OpenClaw gateway powered by Qwen2.5-Coder-1.5B (WebGPU) — 1.5B params, running locally in the browser.`,
+            `Session: ${agent.session}`,
+            `Workspace: ${agent.cwd}`,
+            `Files in workspace: ${ctx.files}`,
+            ctx.working ? `\n### Working State\n${ctx.working}` : '',
+            ctx.memory ? `\n### Memory (recent)\n${ctx.memory}` : '',
+            '\n### Available Tools',
+            'Use these EXACT tags to take actions. Each must be on its own line.',
+            '',
+            '**Core Tools:**',
+            '- [READ] path',
+            '- [WRITE] path | content',
+            '- [EDIT] path | old_text | new_text',
+            '- [BASH] command',
+            '- [GREP] pattern | path',
+            '- [LS] path',
+            '',
+            '**Native Tools:**',
+            '- [DELEGATE] agent_id | message',
+            '- [TASK_CREATE] title | assignee',
+            '- [TASK_UPDATE] task_id | status',
+            '- [WEB_FETCH] url',
+            '',
+            'Tool results appear as 🔧 blocks. Be concise, stay in character, act autonomously.',
+          ].filter(Boolean).join('\n');
+
+          const messages = [
+            { role: "system", content: systemPrompt },
+            ...history
+              .filter(m => m.role === 'user' || m.role === 'assistant')
+              .map(m => ({ role: m.role, content: m.content })),
+          ];
+
+          // WebGPU inference with streaming
+          const parser = new HarmonyStreamParser();
+          let tokenCount = 0;
+          let firstTokenTime = 0;
+          let reasoningContent = '';
+          let contentBuffer = '';
+
+          thinkingEl.remove();
+          const reasoningEl = appendMsg('reasoning', `${agent.emoji} ${agent.name} · reasoning`, '');
+          const msgEl = appendMsg('assistant', `${agent.emoji} ${agent.name}`, '');
+          const reasoningBody = reasoningEl.querySelector('.msg-body');
+          const msgBody = msgEl.querySelector('.msg-body');
+
+          stoppingCriteria.reset();
+
+          const streamer = new TextStreamer(generator.tokenizer, {
+            skip_prompt: true,
+            skip_special_tokens: false,
+            callback_function: (output) => {
+              const delta = parser.push(output);
+              if (!delta || delta.type !== "content") return;
+
+              const msg = parser.messages[delta.messageIndex];
+              const channel = msg?.channel ?? "";
+
+              if (channel === "analysis") {
+                reasoningContent += delta.textDelta;
+                if (reasoningBody) reasoningBody.textContent = reasoningContent;
+              } else {
+                contentBuffer += delta.textDelta;
+                if (msgBody) msgBody.textContent = contentBuffer;
+              }
+              el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
+            },
+            token_callback_function: () => {
+              tokenCount++;
+              gwTokenCount++;
+              if (tokenCount === 1) {
+                firstTokenTime = performance.now();
+              } else {
+                const elapsed = (performance.now() - firstTokenTime) / 1000;
+                if (elapsed > 0) {
+                  currentTPS = Math.round(((tokenCount - 1) / elapsed) * 10) / 10;
+                  updateMetrics();
+                }
+              }
+            },
+          });
+
+          await generator(messages, {
+            max_new_tokens: 2048,
+            do_sample: true,
+            streamer,
+            stopping_criteria: stoppingCriteria,
+            tokenizer_encode_kwargs: {
+              reasoning_effort: "medium",
+            },
+          });
+
+          const finalMsg = parser.messages
+            .filter((m) => m.channel !== "analysis")
+            .at(-1);
+          const reasoningMsg = parser.messages.find(
+            (m) => m.channel === "analysis"
+          );
+
+          const finalContent = finalMsg?.content.trim() || contentBuffer;
+          const finalReasoning = reasoningMsg?.content.trim() || reasoningContent;
+
+          if (msgBody) msgBody.textContent = finalContent;
+          if (reasoningBody) reasoningBody.textContent = finalReasoning;
+
+          // Remove reasoning element if empty
+          if (!finalReasoning) reasoningEl.remove();
+
+          history.push({ role: 'assistant', content: finalContent });
+          if (finalReasoning) history.push({ type: 'reasoning', content: finalReasoning });
+
+          log('ok', `← ${agent.name}: ${finalContent.slice(0, 80)}${finalContent.length > 80 ? '…' : ''}`);
+          updateMetrics();
+          renderMetrics();
+
+          // Parse and execute actions
+          await processActions(cid, agent, finalContent, history);
+
+          // Persist memory
+          await manager.execute(cid, `
+            const fs = require('fs'), path = require('path');
+            const mp = path.join(process.cwd(), 'MEMORY.md');
+            let mem = ''; try { mem = fs.readFileSync(mp, 'utf-8'); } catch {}
+            const entry = '\\n---\\n## ' + new Date().toISOString() + '\\nUser: ' + ${JSON.stringify(text.slice(0, 200))} + '\\nMe: ' + ${JSON.stringify(finalContent.slice(0, 400))} + '\\n';
+            fs.writeFileSync(mp, mem + entry);
+          `).catch(() => {});
+
+          renderContext();
+
+        } catch (err) {
+          thinkingEl?.remove();
+          appendMsg('system', '', `Error: ${err.message}`);
+          log('err', `Chat error: ${err.message}`);
+        } finally {
+          el.chatInput.disabled = false;
+          el.chatSend.disabled = false;
+          el.chatInput.focus();
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  ACTION PARSING (same as gateway demo)
+      // ═══════════════════════════════════════
+      async function processActions(cid, agent, text, history) {
+        // [WRITE] path | content
+        for (const m of text.matchAll(/\[WRITE\]\s*(.+?)\s*\|\s*([\s\S]+?)(?=\n\[(?:WRITE|READ|EDIT|BASH|GREP|LS|DELEGATE|TASK_CREATE|TASK_UPDATE|WEB_FETCH)\]|\n*$)/g)) {
+          const fp = m[1].trim(), content = m[2].trim();
+          try {
+            await manager.execute(cid, `
+              const fs=require('fs'),p=require('path'),d=p.dirname(${JSON.stringify(fp)});
+              try{fs.mkdirSync(d,{recursive:true})}catch{}
+              fs.writeFileSync(${JSON.stringify(fp)},${JSON.stringify(content)});
+            `);
+            const msg = `✓ Wrote ${fp} (${content.length} chars)`;
+            history.push({ type: 'tool-use', tool: 'Write', content: msg });
+            appendMsg('tool-use', 'Write', msg);
+            log('ok', `📝 ${msg}`);
+            renderWorkspaceTree();
+          } catch (err) {
+            appendMsg('tool-use', 'Write', `✗ ${fp}: ${err.message}`);
+            log('err', `Write failed: ${err.message}`);
+          }
+        }
+
+        // [READ] path
+        for (const m of text.matchAll(/\[READ\]\s*(.+)/g)) {
+          const fp = m[1].trim();
+          try {
+            const r = await manager.execute(cid, `
+              const fs=require('fs');
+              module.exports=fs.readFileSync(${JSON.stringify(fp)},'utf-8');
+            `);
+            const content = r.exports || '';
+            const preview = content.length > 300 ? content.slice(0, 300) + '…' : content;
+            const msg = `${fp} (${content.length} chars)\n${preview}`;
+            history.push({ type: 'tool-use', tool: 'Read', content: msg });
+            history.push({ role: 'user', content: `[File: ${fp}]\n${content}`, _auto: true });
+            appendMsg('tool-use', 'Read', msg);
+            log('info', `📖 Read ${fp} (${content.length} chars)`);
+          } catch (err) {
+            appendMsg('tool-use', 'Read', `✗ ${fp}: ${err.message}`);
+            log('err', `Read failed: ${err.message}`);
+          }
+        }
+
+        // [EDIT] path | old_text | new_text
+        for (const m of text.matchAll(/\[EDIT\]\s*(.+?)\s*\|\s*([\s\S]+?)\s*\|\s*([\s\S]+?)(?=\n\[(?:WRITE|READ|EDIT|BASH|GREP|LS|DELEGATE|TASK_CREATE|TASK_UPDATE|WEB_FETCH)\]|\n*$)/g)) {
+          const fp = m[1].trim(), oldText = m[2].trim(), newText = m[3].trim();
+          try {
+            await manager.execute(cid, `
+              const fs=require('fs');
+              let c=fs.readFileSync(${JSON.stringify(fp)},'utf-8');
+              const old=${JSON.stringify(oldText)};
+              if(!c.includes(old)) throw new Error('Old text not found in file');
+              c=c.replace(old,${JSON.stringify(newText)});
+              fs.writeFileSync(${JSON.stringify(fp)},c);
+            `);
+            const msg = `✓ Edited ${fp}: replaced ${oldText.length} chars → ${newText.length} chars`;
+            history.push({ type: 'tool-use', tool: 'Edit', content: msg });
+            appendMsg('tool-use', 'Edit', msg);
+            log('ok', `✏️ ${msg}`);
+            renderWorkspaceTree();
+          } catch (err) {
+            appendMsg('tool-use', 'Edit', `✗ ${fp}: ${err.message}`);
+            log('err', `Edit failed: ${err.message}`);
+          }
+        }
+
+        // [BASH] command
+        for (const m of text.matchAll(/\[BASH\]\s*(.+)/g)) {
+          const cmd = m[1].trim();
+          try {
+            const r = await manager.execute(cid, `
+              const {execSync}=require('child_process');
+              try {
+                const out=execSync(${JSON.stringify(cmd)},{encoding:'utf-8',timeout:10000,cwd:process.cwd()});
+                module.exports={ok:true,output:out.slice(0,2000)};
+              } catch(e) {
+                module.exports={ok:false,output:(e.stdout||'')+(e.stderr||e.message),code:e.status};
+              }
+            `);
+            const res = r.exports || { ok: false, output: 'No output' };
+            const prefix = res.ok ? '✓' : '✗';
+            const msg = `${prefix} $ ${cmd}\n${res.output || '(no output)'}`;
+            history.push({ type: 'tool-use', tool: 'Bash', content: msg });
+            history.push({ role: 'user', content: `[Bash result: ${cmd}]\n${res.output || '(no output)'}`, _auto: true });
+            appendMsg('tool-use', 'Bash', msg);
+            log(res.ok ? 'ok' : 'warn', `🖥️ $ ${cmd} → ${res.ok ? 'ok' : 'exit ' + res.code}`);
+            renderWorkspaceTree();
+          } catch (err) {
+            appendMsg('tool-use', 'Bash', `✗ $ ${cmd}: ${err.message}`);
+            log('err', `Bash failed: ${err.message}`);
+          }
+        }
+
+        // [GREP] pattern | path
+        for (const m of text.matchAll(/\[GREP\]\s*(.+?)\s*\|\s*(.+)/g)) {
+          const pattern = m[1].trim(), searchPath = m[2].trim();
+          try {
+            const r = await manager.execute(cid, `
+              const fs=require('fs'),p=require('path');
+              const pat=${JSON.stringify(pattern)}, dir=${JSON.stringify(searchPath)};
+              const re=new RegExp(pat,'gi');
+              const results=[];
+              function walk(d){
+                try{for(const e of fs.readdirSync(d)){
+                  const fp=p.join(d,e);
+                  try{const s=fs.statSync(fp);
+                    if(s.isDirectory()&&!e.startsWith('.')&&e!=='node_modules')walk(fp);
+                    else if(s.isFile()){
+                      try{const c=fs.readFileSync(fp,'utf-8');
+                        const lines=c.split('\\n');
+                        lines.forEach((l,i)=>{if(re.test(l))results.push(fp+':'+(i+1)+': '+l.trim().slice(0,120));re.lastIndex=0;});
+                      }catch{}
+                    }
+                  }catch{}
+                }}catch{}
+              }
+              walk(dir);
+              module.exports=results.slice(0,30).join('\\n')||'(no matches)';
+            `);
+            const output = r.exports || '(no matches)';
+            const msg = `grep "${pattern}" ${searchPath}\n${output}`;
+            history.push({ type: 'tool-use', tool: 'Grep', content: msg });
+            history.push({ role: 'user', content: `[Grep result: ${pattern} in ${searchPath}]\n${output}`, _auto: true });
+            appendMsg('tool-use', 'Grep', msg);
+            log('info', `🔍 grep "${pattern}" ${searchPath}`);
+          } catch (err) {
+            appendMsg('tool-use', 'Grep', `✗ grep "${pattern}": ${err.message}`);
+            log('err', `Grep failed: ${err.message}`);
+          }
+        }
+
+        // [LS] path
+        for (const m of text.matchAll(/\[LS\]\s*(.+)/g)) {
+          const dir = m[1].trim();
+          try {
+            const r = await manager.execute(cid, `
+              const fs=require('fs'),p=require('path');
+              const entries=fs.readdirSync(${JSON.stringify(dir)}).map(name=>{
+                try{const s=fs.statSync(p.join(${JSON.stringify(dir)},name));
+                  return (s.isDirectory()?'📁 ':'📄 ')+name+(s.isDirectory()?'/':'')+'  ('+s.size+'b)';
+                }catch{return '? '+name;}
+              });
+              module.exports=entries.join('\\n')||'(empty)';
+            `);
+            const output = r.exports || '(empty)';
+            const msg = `${dir}\n${output}`;
+            history.push({ type: 'tool-use', tool: 'LS', content: msg });
+            history.push({ role: 'user', content: `[LS: ${dir}]\n${output}`, _auto: true });
+            appendMsg('tool-use', 'LS', msg);
+            log('info', `📂 ls ${dir}`);
+          } catch (err) {
+            appendMsg('tool-use', 'LS', `✗ ls ${dir}: ${err.message}`);
+            log('err', `LS failed: ${err.message}`);
+          }
+        }
+
+        // [DELEGATE] agent_id | message
+        for (const m of text.matchAll(/\[DELEGATE\]\s*(\w+)\s*\|\s*(.+)/g)) {
+          const targetId = m[1].trim(), message = m[2].trim();
+          const target = agentById(targetId);
+          const targetCid = agentContainers.get(targetId);
+          if (target && targetCid) {
+            try {
+              await manager.execute(targetCid, `
+                const fs=require('fs'),p=require('path');
+                const nf=p.join(process.cwd(),'NOTIFICATIONS.md');
+                let n='';try{n=fs.readFileSync(nf,'utf-8')}catch{}
+                n+='\\n---\\n## From ${agent.emoji} ${agent.name} ('+new Date().toISOString()+')\\n'+${JSON.stringify(message)}+'\\n';
+                fs.writeFileSync(nf,n);
+              `);
+              const msg = `→ ${target.emoji} ${target.name}: ${message}`;
+              history.push({ type: 'tool-use', tool: 'AgentToAgent', content: msg });
+              appendMsg('tool-use', 'AgentToAgent', msg);
+              log('ok', `📨 Delegated to ${target.name}`);
+              const targetHistory = getHistory(targetId);
+              targetHistory.push({ role: 'user', content: `[Message from ${agent.emoji} ${agent.name}]: ${message}`, _auto: true });
+            } catch (err) {
+              appendMsg('tool-use', 'AgentToAgent', `✗ → ${target?.name}: ${err.message}`);
+              log('err', `Delegate failed: ${err.message}`);
+            }
+          } else if (!target) {
+            appendMsg('tool-use', 'AgentToAgent', `✗ Unknown agent "${targetId}"`);
+          } else {
+            appendMsg('tool-use', 'AgentToAgent', `✗ Agent "${targetId}" not running`);
+          }
+        }
+
+        // [TASK_CREATE] title | assignee
+        for (const m of text.matchAll(/\[TASK_CREATE\]\s*(.+?)\s*\|\s*(\w+)/g)) {
+          const title = m[1].trim(), assigneeId = m[2].trim();
+          const assignee = agentById(assigneeId) || agentById('main');
+          const taskId = 'task-' + Date.now().toString(36);
+          const task = { id: taskId, title, status: 'inbox', assignee: assignee.id, created: new Date().toISOString(), by: agent.id };
+          try {
+            for (const [aid, acid] of agentContainers) {
+              await manager.execute(acid, `
+                const fs=require('fs');
+                let tasks=[];try{tasks=JSON.parse(fs.readFileSync('/data/shared/tasks.json','utf-8'))}catch{}
+                tasks.push(${JSON.stringify(task)});
+                try{fs.mkdirSync('/data/shared',{recursive:true})}catch{}
+                fs.writeFileSync('/data/shared/tasks.json',JSON.stringify(tasks,null,2));
+              `).catch(() => {});
+            }
+            const msg = `✓ Created "${title}" → ${assignee.emoji} ${assignee.name} [${taskId}]`;
+            history.push({ type: 'tool-use', tool: 'TaskCreate', content: msg });
+            appendMsg('tool-use', 'TaskCreate', msg);
+            log('ok', `📋 ${msg}`);
+          } catch (err) {
+            appendMsg('tool-use', 'TaskCreate', `✗ Create task: ${err.message}`);
+            log('err', `TaskCreate failed: ${err.message}`);
+          }
+        }
+
+        // [TASK_UPDATE] task_id | status
+        for (const m of text.matchAll(/\[TASK_UPDATE\]\s*([\w-]+)\s*\|\s*(\w+)/g)) {
+          const taskId = m[1].trim(), newStatus = m[2].trim();
+          const validStatuses = ['inbox', 'in_progress', 'review', 'done'];
+          if (!validStatuses.includes(newStatus)) {
+            appendMsg('tool-use', 'TaskUpdate', `✗ Invalid status "${newStatus}"`);
+            continue;
+          }
+          try {
+            for (const [aid, acid] of agentContainers) {
+              await manager.execute(acid, `
+                const fs=require('fs');
+                let tasks=[];try{tasks=JSON.parse(fs.readFileSync('/data/shared/tasks.json','utf-8'))}catch{}
+                const t=tasks.find(t=>t.id===${JSON.stringify(taskId)});
+                if(t)t.status=${JSON.stringify(newStatus)};
+                fs.writeFileSync('/data/shared/tasks.json',JSON.stringify(tasks,null,2));
+              `).catch(() => {});
+            }
+            const msg = `✓ ${taskId} → ${newStatus}`;
+            history.push({ type: 'tool-use', tool: 'TaskUpdate', content: msg });
+            appendMsg('tool-use', 'TaskUpdate', msg);
+            log('ok', `📋 Task ${taskId} → ${newStatus}`);
+          } catch (err) {
+            appendMsg('tool-use', 'TaskUpdate', `✗ Update ${taskId}: ${err.message}`);
+            log('err', `TaskUpdate failed: ${err.message}`);
+          }
+        }
+
+        // [WEB_FETCH] url
+        for (const m of text.matchAll(/\[WEB_FETCH\]\s*(.+)/g)) {
+          const url = m[1].trim();
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const contentType = res.headers.get('content-type') || '';
+            let body;
+            if (contentType.includes('json')) {
+              body = JSON.stringify(await res.json(), null, 2).slice(0, 3000);
+            } else {
+              const raw = await res.text();
+              body = raw.replace(/<script[\s\S]*?<\/script>/gi, '')
+                        .replace(/<style[\s\S]*?<\/style>/gi, '')
+                        .replace(/<[^>]+>/g, ' ')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .slice(0, 3000);
+            }
+            const msg = `✓ ${url} (${contentType})\n${body}`;
+            history.push({ type: 'tool-use', tool: 'WebFetch', content: msg });
+            history.push({ role: 'user', content: `[Fetched: ${url}]\n${body}`, _auto: true });
+            appendMsg('tool-use', 'WebFetch', `✓ ${url} (${body.length} chars)`);
+            log('ok', `🌐 Fetched ${url}`);
+          } catch (err) {
+            appendMsg('tool-use', 'WebFetch', `✗ ${url}: ${err.message}`);
+            log('err', `WebFetch failed: ${err.message}`);
+          }
+        }
+
+        renderWorkspaceTree();
+      }
+
+      // ═══════════════════════════════════════
+      //  SNAPSHOT LOADING
+      // ═══════════════════════════════════════
+      async function loadSnapshot() {
+        if (snapshot) return snapshot;
+        try {
+          const cache = await caches.open('openclaw-gw-snapshot-v1');
+          const cached = await cache.match('/oc-gw-snapshot');
+          if (cached) {
+            snapshot = await cached.json();
+            return snapshot;
+          }
+        } catch {}
+
+        const res = await fetch('/dist/openclaw/openclaw-vfs-snapshot.json');
+        if (!res.ok) throw new Error(`Snapshot not found (${res.status}). Run: npm run openclaw:build`);
+        snapshot = await res.json();
+
+        try {
+          const cache = await caches.open('openclaw-gw-snapshot-v1');
+          const blob = new Blob([JSON.stringify(snapshot)], { type: 'application/json' });
+          await cache.put('/oc-gw-snapshot', new Response(blob));
+        } catch {}
+        return snapshot;
+      }
+
+      // ═══════════════════════════════════════
+      //  LAUNCH GATEWAY
+      // ═══════════════════════════════════════
+      async function launch() {
+        el.launchBtn.disabled = true;
+        el.loadingOverlay.classList.remove('hidden');
+        el.bootLog.innerHTML = '';
+        setProgress(2, 'Initialising gateway…', '');
+        bootLine('OpenClaw + Qwen2.5-Coder-1.5B WebGPU');
+
+        try {
+          // Phase 1: Check WebGPU
+          setProgress(5, 'Checking WebGPU support…', '');
+          bootLine('Checking WebGPU availability…');
+          await checkWebGPU();
+          bootLine('✓ WebGPU available', 'ok');
+
+          // Phase 2: Load snapshot
+          setProgress(8, 'Loading VFS snapshot…', '');
+          bootLine('Loading VFS snapshot…');
+          const snap = await loadSnapshot();
+          bootLine(`✓ Snapshot loaded — ${snap.files.length} entries`, 'ok');
+          setProgress(12, 'Snapshot loaded', `${snap.files.length} entries`);
+
+          // Phase 3: Start loading WebGPU model (async)
+          setProgress(15, 'Loading Qwen2.5-Coder-1.5B model…', 'Starting download (~900MB)');
+          bootLine('Loading Qwen2.5-Coder-1.5B model (onnx-community/qwen2.5-coder-1.5b-ONNX)…');
+          bootLine('This may take several minutes on first run (~900MB download)');
+
+          loadModel((progress, file) => {
+            const pct = 15 + (progress / 100) * 40; // 15-55%
+            setProgress(pct, `Downloading model… ${Math.round(progress)}%`, file);
+          }).catch(err => {
+            bootLine(`✗ Model load failed: ${err.message}`, 'err');
+            throw err;
+          });
+
+          // Phase 4: Create runtime (while model loads)
+          setProgress(55, 'Creating runtime…', '');
+          const runtimeChoice = el.cfgRuntime.value;
+          bootLine(`Runtime: ${runtimeChoice}`);
+          const rtOpts = getRuntimeOptions();
+          manager = new AgentContainerManager({
+            maxContainers: 10,
+            defaultExecutionTimeoutMs: 30_000,
+            runtime: rtOpts,
+          });
+          bootLine('✓ Manager ready', 'ok');
+
+          // Phase 5: Build config
+          const enabledAgents = getEnabledAgents();
+          const env = {
+            NODE_ENV: 'production',
+            OPENCLAW_PORT: String(el.cfgPort.value),
+            OPENCLAW_STATE_DIR: '/openclaw',
+          };
+
+          // Phase 6: Spawn gateway container
+          setProgress(60, 'Spawning gateway container…', '');
+          setGwState('booting');
+          bootLine('Spawning gateway container…');
+
+          const gwInfo = await manager.spawn({
+            id: 'openclaw-gateway',
+            vfsSnapshot: snap,
+            cwd: '/openclaw',
+            env,
+          });
+          gatewayContainer = gwInfo.id;
+          const gwRtMode = gwInfo.runtimeMode || runtimeChoice;
+          bootLine(`✓ Gateway container: ${gwInfo.id} (${gwRtMode})`, 'ok');
+          log('ok', `Gateway container spawned (${gwRtMode})`);
+
+          setProgress(65, 'Bootstrapping runtime…', '');
+          bootLine('Registering native module stubs…');
+          await manager.execute(gatewayContainer, `
+            const loader = require('/openclaw/loader.cjs');
+            loader.registerStubs();
+            loader.setupEnv();
+          `);
+          bootLine('✓ Stubs registered, env configured', 'ok');
+
+          // Phase 7: Spawn agent containers
+          bootLine(`Spawning ${enabledAgents.length} agent container(s)…`);
+          for (let i = 0; i < enabledAgents.length; i++) {
+            const a = enabledAgents[i];
+            const pct = 65 + Math.floor((i / enabledAgents.length) * 20);
+            setProgress(pct, `Spawning ${a.emoji} ${a.name}…`, `${a.role} · ${a.cwd}`);
+            bootLine(`Spawning ${a.emoji} ${a.name} (${a.role})…`);
+
+            const info = await manager.spawn({
+              id: `agent-${a.id}`,
+              vfsSnapshot: snap,
+              cwd: a.cwd,
+              env: { ...env, AGENT_ID: a.id, WORKSPACE: a.cwd },
+            });
+            agentContainers.set(a.id, info.id);
+
+            await manager.execute(info.id, `
+              const loader = require('/openclaw/loader.cjs');
+              loader.registerStubs();
+              loader.setupEnv();
+            `);
+            const aRtMode = info.runtimeMode || runtimeChoice;
+            bootLine(`✓ ${a.emoji} ${a.name} ready (${aRtMode})`, 'ok');
+            log('ok', `${a.emoji} ${a.name} spawned — session ${a.session}`);
+          }
+
+          activeAgent = enabledAgents[0]?.id || 'main';
+
+          // Phase 8: Wait for model to finish loading
+          setProgress(85, 'Finalizing model load…', 'This may take a moment');
+          bootLine('Waiting for model to finish loading…');
+          await generatorPromise;
+          bootLine('✓ Qwen2.5-Coder-1.5B model loaded and ready', 'ok');
+
+          // Phase 9: Ready
+          setProgress(100, '🦀 Gateway online!', '');
+          bootLine('═══════════════════════════════════', 'ok');
+          bootLine('🦀 OpenClaw + Qwen2.5-Coder-1.5B WebGPU is ONLINE', 'ok');
+          bootLine(`   Port: ${el.cfgPort.value}   Mode: ${el.cfgMode.value}   Bind: ${el.cfgBind.value}`, 'ok');
+          bootLine(`   Model: Qwen2.5-Coder-1.5B (WebGPU) · 1.5B params · local inference`, 'ok');
+          bootLine(`   Agents: ${enabledAgents.map(a => a.emoji + ' ' + a.name).join(' · ')}`, 'ok');
+          bootLine(`   Runtime: ${runtimeChoice}`, 'ok');
+          bootLine('═══════════════════════════════════', 'ok');
+          log('ok', '🦀 OpenClaw + Qwen2.5-Coder-1.5B WebGPU ONLINE');
+
+          setGwState('running');
+          el.gwRuntime.textContent = runtimeChoice;
+          el.gwRuntime.className = 'gw-val on';
+          startUptimeTimer();
+
+          const h = getHistory('main');
+          h.push({ role: 'assistant', content: "Gateway's up. Running Qwen2.5-Coder-1.5B via WebGPU — all local, no API keys.\n\nI'm Clawe, your squad lead. I coordinate Inky (writer), Pixel (designer), and Scout (SEO).\n\nWhat are we building?" });
+
+          setTimeout(() => el.loadingOverlay.classList.add('hidden'), 400);
+
+          renderSessions();
+          renderChat();
+          renderContext();
+          renderWorkspaceTree();
+          renderMetrics();
+
+        } catch (err) {
+          bootLine(`✗ ${err.message}`, 'err');
+          log('err', `Launch failed: ${err.message}`);
+          setGwState('offline');
+          el.loadingOverlay.classList.add('hidden');
+        } finally {
+          el.launchBtn.disabled = false;
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  STOP GATEWAY
+      // ═══════════════════════════════════════
+      async function stopGateway() {
+        log('warn', 'Shutting down gateway…');
+        setGwState('stopped');
+        clearInterval(uptimeInterval);
+        if (manager) await manager.dispose();
+        agentContainers.clear();
+        gatewayContainer = null;
+        manager = null;
+        renderSessions();
+        renderContext();
+        renderWorkspaceTree();
+        log('info', 'Gateway stopped');
+      }
+
+      // ═══════════════════════════════════════
+      //  WIRING
+      // ═══════════════════════════════════════
+      el.launchBtn.addEventListener('click', () => void launch());
+      el.stopBtn.addEventListener('click', () => void stopGateway());
+      el.chatSend.addEventListener('click', () => void sendChat());
+      el.chatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void sendChat(); }
+      });
+
+      setInterval(() => {
+        if (gwState === 'running') {
+          renderMetrics();
+          renderSessions();
+        }
+      }, 5000);
+    </script>
+  </body>
+</html>

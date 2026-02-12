@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docs — vibeclaw</title>
+  <meta name="description" content="vibeclaw documentation — run OpenClaw in your browser, connect to a live gateway, or boot a sandbox agent.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vibeclaw.dev/docs/">
+  <meta property="og:title" content="Docs — vibeclaw">
+  <meta property="og:description" content="vibeclaw documentation — run OpenClaw in your browser.">
+  <meta property="og:image" content="https://vibeclaw.dev/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Docs — vibeclaw">
+  <meta name="twitter:description" content="vibeclaw documentation — run OpenClaw in your browser.">
+  <meta name="twitter:image" content="https://vibeclaw.dev/og-image.png">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <a href="../" class="topbar-logo">🦀 vibeclaw</a>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-section">Docs</span>
+  <ul class="topbar-links">
+    <li><a href="https://github.com/jasonkneen/vibeclaw">GitHub</a></li>
+    <li><a href="https://openclaw.ai">OpenClaw</a></li>
+  </ul>
+</div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-group">
+      <div class="sidebar-label">vibeclaw</div>
+      <a href="./" class="active">Overview</a>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-label">Demos</div>
+      <a href="../examples/openclaw-gateway-demo.html">Gateway Dashboard</a>
+      <a href="../examples/openclaw-connect-demo.html">Connect Demo</a>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-label">External Docs</div>
+      <a href="https://github.com/nicholasgriffintn/almostnode#readme" target="_blank">almostnode ↗</a>
+      <a href="https://openclaw.ai/docs" target="_blank">OpenClaw ↗</a>
+    </div>
+  </nav>
+
+  <main class="content">
+    <h1>vibeclaw</h1>
+    <p class="lead">The fastest way to try OpenClaw — boot a sandbox agent in your browser, or connect to your live gateway. No server required.</p>
+
+    <h2>What is vibeclaw?</h2>
+    <p>vibeclaw.dev is an open-source OpenClaw dashboard and sandbox platform. It runs entirely in the browser, powered by <a href="https://github.com/nicholasgriffintn/almostnode">almostnode</a> — a browser-native Node.js runtime.</p>
+
+    <h2>Two Modes</h2>
+    <table>
+      <tr>
+        <th></th>
+        <th>📦 Sandbox</th>
+        <th>🔴 Live Gateway</th>
+      </tr>
+      <tr><td><strong>Requires</strong></td><td>Nothing — free model included</td><td>Gateway token + URL</td></tr>
+      <tr><td><strong>Install</strong></td><td>None — runs in browser</td><td>Running OpenClaw instance</td></tr>
+      <tr><td><strong>Data</strong></td><td>Ephemeral (in-memory VFS)</td><td>Real sessions, files, history</td></tr>
+      <tr><td><strong>Chat</strong></td><td>Via OpenRouter (server-proxied)</td><td>Through gateway (streaming)</td></tr>
+      <tr><td><strong>Dashboard</strong></td><td>Terminal + chat</td><td>Full 3-column dashboard</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Trying OpenClaw instantly</td><td>Monitoring your real agent</td></tr>
+    </table>
+
+    <h2>Sandbox Mode</h2>
+    <p>Hit <strong>Start Now</strong> on the homepage. vibeclaw will:</p>
+    <ol>
+      <li>Load the OpenClaw runtime (~23MB VFS snapshot)</li>
+      <li>Spin up a browser-native container via almostnode</li>
+      <li>Install the agent workspace (67 files)</li>
+      <li>Connect to a free LLM via OpenRouter</li>
+    </ol>
+    <p>No API key needed. The server proxies requests to OpenRouter using a server-side key, locked to free models only.</p>
+
+    <h2>Live Gateway Mode</h2>
+    <p>Connect to your running OpenClaw instance via the <a href="../examples/openclaw-gateway-demo.html">Gateway Dashboard</a>. Enter your gateway token and URL to see:</p>
+    <ul>
+      <li>Sessions, agents, and conversation history</li>
+      <li>Workspace files and directory trees</li>
+      <li>Skills, cron jobs, and config</li>
+      <li>Usage metrics and cost tracking</li>
+      <li>Real-time streaming chat</li>
+      <li>Presence and log monitoring</li>
+    </ul>
+    <p>The dashboard connects via WebSocket using Ed25519 authentication. No API keys are exposed — just your gateway token.</p>
+
+    <h2>Architecture</h2>
+    <p>vibeclaw is a static site built with Vite. Under the hood:</p>
+    <ul>
+      <li><strong><a href="https://github.com/nicholasgriffintn/almostnode">almostnode</a></strong> — Browser-native Node.js runtime with VirtualFS, 40+ shimmed modules, npm package support, and container management</li>
+      <li><strong><a href="https://openclaw.ai">OpenClaw</a></strong> — AI coding agent framework with gateway, sessions, skills, cron, and multi-agent support</li>
+      <li><strong><a href="https://openrouter.ai">OpenRouter</a></strong> — LLM API gateway for free model access (sandbox mode)</li>
+      <li><strong>Ed25519 auth</strong> — Pure JS crypto via <code>@noble/ed25519</code> for gateway connections from any origin</li>
+    </ul>
+
+    <h2>External Documentation</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;">
+      <a href="https://github.com/nicholasgriffintn/almostnode#readme" target="_blank" style="display:block;padding:20px;border:1px solid var(--border);background:var(--surface);text-decoration:none;transition:border-color 0.15s;">
+        <strong style="color:var(--text-bright);font-size:1.05rem;">📦 almostnode</strong>
+        <p style="color:var(--text-dim);margin:8px 0 0;font-size:0.85rem;">Browser-native Node.js runtime — VirtualFS, Runtime, PackageManager, API reference, security guides.</p>
+      </a>
+      <a href="https://openclaw.ai/docs" target="_blank" style="display:block;padding:20px;border:1px solid var(--border);background:var(--surface);text-decoration:none;transition:border-color 0.15s;">
+        <strong style="color:var(--text-bright);font-size:1.05rem;">🦀 OpenClaw</strong>
+        <p style="color:var(--text-dim);margin:8px 0 0;font-size:0.85rem;">AI coding agent framework — gateway setup, agent config, skills, sessions, cron, and API reference.</p>
+      </a>
+    </div>
+
+    <h2>Source Code</h2>
+    <p><a href="https://github.com/jasonkneen/vibeclaw">github.com/jasonkneen/vibeclaw</a> — MIT licensed. PRs welcome.</p>
+
+  </main>
+</div>
+
+</body>
+</html>

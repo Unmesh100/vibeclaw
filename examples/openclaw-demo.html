@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clawe Squad Manager — vibeclaw</title>
+    <link rel="stylesheet" href="./shared-styles.css" />
+    <style>
+      /* ═══ Root layout: nav-rail | instance-view ═══ */
+      .root { display: grid; grid-template-columns: 220px 1fr; gap: 1px; background: var(--border); height: calc(100vh - 44px); }
+
+      /* ═══ Nav rail (instance list) ═══ */
+      .nav-rail { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+      .nav-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+      .nav-title { font-family: var(--mono); font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 6px; }
+
+      .instance-type-row { display: flex; gap: 4px; margin-bottom: 6px; }
+      .instance-type-row select { flex: 1; padding: 5px 6px; background: var(--black); border: 1px solid var(--border); color: var(--text-bright); font-family: var(--mono); font-size: 0.65rem; outline: none; }
+      .instance-type-row select:focus { border-color: var(--accent-border); }
+
+      .field-sm { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+      .field-sm label { font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); }
+      .field-sm input { padding: 4px 7px; background: var(--black); border: 1px solid var(--border); color: var(--text-bright); font-family: var(--mono); font-size: 0.65rem; outline: none; }
+      .field-sm input:focus { border-color: var(--accent-border); }
+      .field-sm input::placeholder { color: #444; }
+
+      .instance-list { flex: 1; overflow-y: auto; padding: 0 12px 10px; display: flex; flex-direction: column; gap: 3px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .instance-item { padding: 8px 9px; background: var(--black); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+      .instance-item:hover { border-color: var(--border-bright); }
+      .instance-item.selected { border-color: var(--accent-border); background: var(--accent-bg); }
+      .instance-item .inst-row { display: flex; align-items: center; gap: 6px; }
+      .instance-item .inst-name { font-family: var(--mono); font-size: 0.7rem; font-weight: 600; color: var(--text-bright); }
+      .instance-item .inst-type { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); margin-left: auto; text-transform: uppercase; }
+      .instance-item .inst-meta { font-family: var(--mono); font-size: 0.52rem; color: var(--text-dim); margin-top: 3px; display: flex; gap: 6px; align-items: center; }
+      .inst-dot { width: 5px; height: 5px; border-radius: 50%; }
+      .inst-dot.running { background: var(--accent); }
+      .inst-dot.stopped { background: var(--border-bright); }
+      .inst-dot.booting { background: var(--warn); }
+
+      .nav-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; }
+      .nav-kpi { font-family: var(--mono); font-size: 0.52rem; background: var(--black); border: 1px solid var(--border); padding: 3px 5px; color: var(--text-dim); text-align: center; }
+      .nav-kpi strong { color: var(--text); display: block; font-size: 0.72rem; }
+
+      /* ═══ Instance view (right: 3-col OC layout) ═══ */
+      .instance-view { display: flex; flex-direction: column; overflow: hidden; background: var(--black); }
+      .instance-empty { display: flex; align-items: center; justify-content: center; flex: 1; font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); }
+
+      .oc-layout { display: grid; grid-template-columns: 200px 1fr 280px; gap: 1px; background: var(--border); flex: 1; overflow: hidden; }
+
+      /* ── OC sidebar ── */
+      .oc-sidebar { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+      .oc-section { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+      .oc-title { font-family: var(--mono); font-size: 0.52rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 5px; }
+
+      .agent-list { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; flex: 1; padding: 0 10px 8px; }
+      .agent-card { padding: 6px 8px; background: var(--black); border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
+      .agent-card:hover { border-color: var(--border-bright); }
+      .agent-card.selected { border-color: var(--accent-border); background: var(--accent-bg); }
+      .agent-row { display: flex; align-items: center; gap: 5px; }
+      .agent-emoji { font-size: 0.85rem; }
+      .agent-name { font-family: var(--mono); font-size: 0.65rem; font-weight: 600; color: var(--text-bright); }
+      .agent-role { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); margin-left: auto; }
+      .agent-meta { display: flex; align-items: center; gap: 3px; margin-top: 2px; font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); }
+      .dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+      .dot.ready { background: var(--accent); }
+      .dot.busy { background: var(--warn); }
+      .dot.off { background: var(--border-bright); }
+
+      .activity-feed { max-height: 100px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .activity-item { font-family: var(--mono); font-size: 0.5rem; color: var(--text-dim); padding: 1px 0; line-height: 1.4; }
+      .activity-item .time { color: #555; }
+      .activity-item .actor { color: var(--text); }
+
+      /* ── OC center: kanban ── */
+      .oc-center { display: flex; flex-direction: column; overflow: hidden; background: var(--surface); }
+      .kanban { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); flex: 1; overflow: hidden; }
+      .kanban-col { background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+      .kanban-col-header { padding: 6px 7px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); display: flex; align-items: center; gap: 4px; }
+      .kanban-col-header .count { background: var(--black); border: 1px solid var(--border); padding: 1px 4px; font-size: 0.48rem; min-width: 14px; text-align: center; }
+      .kanban-cards { flex: 1; overflow-y: auto; padding: 4px; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+      .task-card { padding: 6px 7px; background: var(--black); border: 1px solid var(--border); cursor: pointer; transition: border-color 0.15s; font-family: var(--mono); }
+      .task-card:hover { border-color: var(--border-bright); }
+      .task-card.selected { border-color: var(--accent-border); background: var(--accent-bg); }
+      .task-title { font-size: 0.6rem; color: var(--text-bright); font-weight: 500; margin-bottom: 2px; line-height: 1.3; }
+      .task-meta { font-size: 0.48rem; color: var(--text-dim); display: flex; gap: 4px; align-items: center; }
+      .task-priority { padding: 1px 3px; border: 1px solid var(--border); font-size: 0.45rem; text-transform: uppercase; }
+      .task-priority.high, .task-priority.urgent { border-color: rgba(255,107,107,0.3); color: var(--error); }
+
+      .task-detail { border-top: 1px solid var(--border); background: var(--black); padding: 8px 10px; max-height: 25vh; overflow-y: auto; display: none; }
+      .task-detail.open { display: block; }
+      .task-detail-title { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; color: var(--text-bright); margin-bottom: 5px; }
+      .task-detail-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-family: var(--mono); font-size: 0.58rem; }
+      .task-detail-row label { color: var(--text-dim); min-width: 50px; text-transform: uppercase; font-size: 0.5rem; letter-spacing: 0.04em; }
+      .task-detail-row select { color: var(--text); background: var(--surface); border: 1px solid var(--border); padding: 2px 5px; font-family: var(--mono); font-size: 0.58rem; cursor: pointer; outline: none; }
+      .task-comment { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); padding: 2px 0; line-height: 1.4; }
+      .task-comment .comment-author { color: var(--text); font-weight: 500; }
+
+      .new-task-bar { display: flex; gap: 0; border-top: 1px solid var(--border); background: var(--black); }
+      .new-task-bar input { flex: 1; padding: 6px 8px; background: transparent; border: none; color: var(--text-bright); font-family: var(--mono); font-size: 0.65rem; outline: none; }
+      .new-task-bar input::placeholder { color: #444; }
+
+      /* ── OC chat ── */
+      .chat-panel { display: flex; flex-direction: column; overflow: hidden; background: var(--surface); }
+      .chat-messages { flex: 1; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 5px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+      .msg { max-width: 95%; padding: 6px 8px; font-family: var(--mono); font-size: 0.65rem; line-height: 1.5; border: 1px solid var(--border); word-break: break-word; }
+      .msg.user { align-self: flex-end; background: var(--accent-bg); border-color: var(--accent-border); color: var(--text-bright); }
+      .msg.agent { align-self: flex-start; background: var(--black); color: var(--text); }
+      .msg .msg-header { font-size: 0.52rem; color: var(--text-dim); margin-bottom: 2px; }
+      .msg .msg-body { white-space: pre-wrap; }
+      .msg.system { align-self: center; color: var(--text-dim); font-size: 0.55rem; border: none; background: none; padding: 2px; }
+      .msg.thinking { align-self: flex-start; background: var(--black); color: var(--text-dim); border-style: dashed; }
+      .msg.thinking .msg-body::after { content: '…'; animation: blink 1s infinite; }
+      @keyframes blink { 50% { opacity: 0.3; } }
+
+      .chat-input { display: flex; gap: 0; border-top: 1px solid var(--border); background: var(--black); }
+      .chat-input input { flex: 1; padding: 8px 8px; background: transparent; border: none; color: var(--text-bright); font-family: var(--mono); font-size: 0.68rem; outline: none; }
+      .chat-input input::placeholder { color: #444; }
+
+      /* ── Loading overlay ── */
+      .loading-overlay { position: fixed; inset: 0; background: rgba(12,12,12,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; transition: opacity 0.3s; }
+      .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+      .loading-spinner { font-size: 1.8rem; margin-bottom: 10px; animation: spin 1s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .loading-text { font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); }
+      .loading-sub { font-family: var(--mono); font-size: 0.58rem; color: var(--text-dim); margin-top: 4px; }
+      .progress-bar { width: 160px; height: 2px; background: var(--border); margin-top: 10px; overflow: hidden; }
+      .progress-bar .fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s; }
+
+      @media (max-width: 1100px) {
+        .oc-layout { grid-template-columns: 180px 1fr; }
+        .chat-panel { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-topbar">
+      <a href="./index.html" class="back">← demos</a>
+      <span class="sep">/</span>
+      <a href="../index.html" class="logo">🦀 vibeclaw</a>
+      <span class="sep">/</span>
+      <span class="title">Clawe Squad Manager</span>
+      <span class="tag">clawe · multi-agent · kanban · isolated</span>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="loading-spinner">🦞</div>
+      <div class="loading-text" id="loadingText">Booting…</div>
+      <div class="loading-sub" id="loadingSub"></div>
+      <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="root">
+      <!-- ═══ Nav rail ═══ -->
+      <div class="nav-rail">
+        <div class="nav-section">
+          <div class="nav-title">New Instance</div>
+          <div class="instance-type-row">
+            <select id="instanceType">
+              <option value="openclaw">🦞 OpenClaw (4 agents)</option>
+            </select>
+          </div>
+          <div class="field-sm">
+            <label>Anthropic API Key</label>
+            <input id="apiKey" type="password" placeholder="sk-ant-…" />
+          </div>
+          <button id="createBtn" class="btn btn-primary" style="width:100%;">Create Instance</button>
+        </div>
+
+        <div class="nav-section" style="flex:0;padding-bottom:4px;">
+          <div class="nav-title">Instances</div>
+        </div>
+        <div id="instanceList" class="instance-list">
+          <div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-dim);padding:2px 0;">No instances yet</div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-title">Global</div>
+          <div id="globalMetrics" class="nav-metrics"></div>
+        </div>
+      </div>
+
+      <!-- ═══ Instance view ═══ -->
+      <div class="instance-view" id="instanceView">
+        <div class="instance-empty">Select or create an instance</div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { AgentContainerManager } from '../src/index.ts';
+
+      // ═══════════════════════════════════════
+      //  PERSISTENCE — IndexedDB + Cache API
+      // ═══════════════════════════════════════
+      const DB_NAME = 'openclaw-manager';
+      const DB_VERSION = 1;
+      const SNAPSHOT_CACHE = 'openclaw-snapshot-v1';
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          const req = indexedDB.open(DB_NAME, DB_VERSION);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains('instances')) db.createObjectStore('instances', { keyPath: 'id' });
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function dbPut(storeName, value) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          tx.objectStore(storeName).put(value);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function dbGetAll(storeName) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readonly');
+          const req = tx.objectStore(storeName).getAll();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      async function dbDelete(storeName, key) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(storeName, 'readwrite');
+          tx.objectStore(storeName).delete(key);
+          tx.oncomplete = resolve;
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      /** Serialize instance state for IndexedDB (strips non-serializable fields) */
+      function serializeInstance(s) {
+        const chats = {};
+        for (const [agentId, msgs] of s.chatHistories) chats[agentId] = msgs;
+        const souls = {};
+        for (const [agentId, soul] of s.agentSouls) souls[agentId] = soul;
+        return {
+          id: s.id, name: s.name, type: s.type, apiKey: s.apiKey,
+          selectedAgent: s.selectedAgent,
+          tasks: s.tasks, taskSeq: s.taskSeq,
+          chatHistories: chats, agentSouls: souls,
+          activityLog: s.activityLog.slice(-50),
+          savedAt: new Date().toISOString(),
+        };
+      }
+
+      /** Save instance to IndexedDB (debounced per instance) */
+      const saveTimers = new Map();
+      function scheduleSave(s) {
+        if (saveTimers.has(s.id)) clearTimeout(saveTimers.get(s.id));
+        saveTimers.set(s.id, setTimeout(() => {
+          dbPut('instances', serializeInstance(s)).catch(e => console.warn('Save failed:', e));
+          saveTimers.delete(s.id);
+        }, 500));
+      }
+
+      /** Force-save all instances now (for beforeunload) */
+      function saveAllNow() {
+        for (const s of instances.values()) {
+          if (s.status === 'running' || s.tasks.length > 0) {
+            try {
+              const data = serializeInstance(s);
+              // Use sync localStorage as fallback since IDB may not complete during unload
+              localStorage.setItem(`oc-backup-${s.id}`, JSON.stringify(data));
+            } catch {}
+          }
+        }
+      }
+
+      /** Cache the VFS snapshot in Cache API */
+      async function cacheSnapshot(snapshotJson) {
+        try {
+          const cache = await caches.open(SNAPSHOT_CACHE);
+          const blob = new Blob([JSON.stringify(snapshotJson)], { type: 'application/json' });
+          await cache.put('/openclaw-snapshot', new Response(blob));
+        } catch (e) { console.warn('Cache write failed:', e); }
+      }
+
+      /** Load snapshot from Cache API (returns null if not cached) */
+      async function loadCachedSnapshot() {
+        try {
+          const cache = await caches.open(SNAPSHOT_CACHE);
+          const resp = await cache.match('/openclaw-snapshot');
+          if (resp) return await resp.json();
+        } catch {}
+        return null;
+      }
+
+      // ═══════════════════════════════════════
+      //  TYPES
+      // ═══════════════════════════════════════
+      const AGENTS = [
+        { id: 'main',  name: 'Clawe', emoji: '🦞', role: 'Squad Lead',       cwd: '/data/workspace' },
+        { id: 'inky',  name: 'Inky',  emoji: '✍️',  role: 'Content Writer',   cwd: '/data/workspace-inky' },
+        { id: 'pixel', name: 'Pixel', emoji: '🎨', role: 'Graphic Designer', cwd: '/data/workspace-pixel' },
+        { id: 'scout', name: 'Scout', emoji: '🔍', role: 'SEO Specialist',   cwd: '/data/workspace-scout' },
+      ];
+      const STATUSES = ['inbox', 'in_progress', 'review', 'done'];
+      const STATUS_LABELS = { inbox: 'Inbox', in_progress: 'In Progress', review: 'Review', done: 'Done' };
+
+      // ═══════════════════════════════════════
+      //  STATE
+      // ═══════════════════════════════════════
+      let snapshot = null;  // shared, loaded once
+      const instances = new Map();  // instanceId → InstanceState
+      let selectedInstanceId = null;
+      let instanceSeq = 0;
+
+      /** @typedef {{ id: string, name: string, type: string, status: string, apiKey: string, manager: AgentContainerManager, containers: Map, selectedAgent: string, selectedTaskId: string|null, tasks: Array, taskSeq: number, chatHistories: Map, agentSouls: Map, activityLog: Array, streaming: boolean }} InstanceState */
+
+      function createInstanceState(id, name, apiKey) {
+        return {
+          id, name, type: 'openclaw', status: 'booting', apiKey,
+          manager: new AgentContainerManager({
+            maxContainers: 10, defaultExecutionTimeoutMs: 30_000,
+            runtime: { dangerouslyAllowSameOrigin: true, useWorker: 'auto' },
+          }),
+          containers: new Map(),
+          selectedAgent: 'main', selectedTaskId: null,
+          tasks: [], taskSeq: 1,
+          chatHistories: new Map(), agentSouls: new Map(),
+          activityLog: [], streaming: false,
+        };
+      }
+
+      // ═══════════════════════════════════════
+      //  DOM
+      // ═══════════════════════════════════════
+      const $ = id => document.getElementById(id);
+      const el = {
+        instanceType: $('instanceType'), apiKey: $('apiKey'), createBtn: $('createBtn'),
+        instanceList: $('instanceList'), globalMetrics: $('globalMetrics'),
+        instanceView: $('instanceView'),
+        loadingOverlay: $('loadingOverlay'), loadingText: $('loadingText'), loadingSub: $('loadingSub'), progressFill: $('progressFill'),
+      };
+
+      function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function agentById(id) { return AGENTS.find(a => a.id === id); }
+      function now() { return new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' }); }
+      function setProgress(pct, text, sub) { el.progressFill.style.width = pct+'%'; if (text) el.loadingText.textContent = text; if (sub !== undefined) el.loadingSub.textContent = sub; }
+      function inst() { return instances.get(selectedInstanceId); }
+
+      // ═══════════════════════════════════════
+      //  INSTANCE LIST (nav rail)
+      // ═══════════════════════════════════════
+      function renderInstanceList() {
+        if (instances.size === 0) {
+          el.instanceList.innerHTML = '<div style="font-family:var(--mono);font-size:0.6rem;color:var(--text-dim);padding:2px 0;">No instances yet</div>';
+        } else {
+          el.instanceList.innerHTML = [...instances.values()].map(s => {
+            const sel = s.id === selectedInstanceId ? 'selected' : '';
+            const dotClass = s.status === 'running' ? 'running' : s.status === 'booting' ? 'booting' : 'stopped';
+            const containerCount = s.containers.size;
+            return `<div class="instance-item ${sel}" data-id="${s.id}">
+              <div class="inst-row">
+                <span class="inst-name">🦞 ${esc(s.name)}</span>
+                <span class="inst-type">${s.type}</span>
+              </div>
+              <div class="inst-meta">
+                <span class="inst-dot ${dotClass}"></span> ${s.status}
+                · ${containerCount} containers
+                · ${s.tasks.length} tasks
+              </div>
+            </div>`;
+          }).join('');
+
+          el.instanceList.querySelectorAll('.instance-item').forEach(item => {
+            item.addEventListener('click', () => {
+              selectedInstanceId = item.dataset.id;
+              renderInstanceList();
+              renderInstanceView();
+            });
+          });
+        }
+        renderGlobalMetrics();
+      }
+
+      function renderGlobalMetrics() {
+        let totalContainers = 0, totalTasks = 0;
+        for (const s of instances.values()) { totalContainers += s.containers.size; totalTasks += s.tasks.length; }
+        el.globalMetrics.innerHTML = [
+          ['instances', instances.size], ['containers', totalContainers],
+          ['tasks', totalTasks], ['types', 1],
+        ].map(([k,v]) => `<div class="nav-kpi"><strong>${v}</strong>${k}</div>`).join('');
+      }
+
+      // ═══════════════════════════════════════
+      //  INSTANCE VIEW (right panel)
+      // ═══════════════════════════════════════
+      function renderInstanceView() {
+        const s = inst();
+        if (!s) {
+          el.instanceView.innerHTML = '<div class="instance-empty">Select or create an instance</div>';
+          return;
+        }
+
+        // Build the 3-col OC layout
+        el.instanceView.innerHTML = `
+          <div class="oc-layout">
+            <!-- OC sidebar -->
+            <div class="oc-sidebar">
+              <div class="oc-section">
+                <div class="oc-title">${esc(s.name)}</div>
+                <div style="display:flex;gap:3px;">
+                  <button class="btn btn-warn" style="padding:3px 8px;font-size:0.55rem;flex:1;" id="oc-stop-${s.id}">${s.status === 'running' ? 'Stop' : 'Restart'}</button>
+                  <button class="btn btn-secondary" style="padding:3px 8px;font-size:0.55rem;" id="oc-delete-${s.id}">Delete</button>
+                </div>
+              </div>
+              <div class="oc-section" style="flex:0;padding-bottom:2px;">
+                <div class="oc-title">Squad</div>
+              </div>
+              <div class="agent-list" id="oc-agents-${s.id}"></div>
+              <div class="oc-section">
+                <div class="oc-title">Activity</div>
+                <div class="activity-feed" id="oc-activity-${s.id}"></div>
+              </div>
+            </div>
+
+            <!-- OC center: kanban -->
+            <div class="oc-center">
+              <div class="panel-header"><span class="panel-label">Task Board</span></div>
+              <div class="kanban">
+                <div class="kanban-col"><div class="kanban-col-header">Inbox <span class="count" id="oc-count-inbox-${s.id}">0</span></div><div class="kanban-cards" id="oc-col-inbox-${s.id}"></div></div>
+                <div class="kanban-col"><div class="kanban-col-header">In Prog <span class="count" id="oc-count-in_progress-${s.id}">0</span></div><div class="kanban-cards" id="oc-col-in_progress-${s.id}"></div></div>
+                <div class="kanban-col"><div class="kanban-col-header">Review <span class="count" id="oc-count-review-${s.id}">0</span></div><div class="kanban-cards" id="oc-col-review-${s.id}"></div></div>
+                <div class="kanban-col"><div class="kanban-col-header">Done <span class="count" id="oc-count-done-${s.id}">0</span></div><div class="kanban-cards" id="oc-col-done-${s.id}"></div></div>
+              </div>
+              <div class="task-detail" id="oc-task-detail-${s.id}"></div>
+              <div class="new-task-bar">
+                <input id="oc-task-input-${s.id}" type="text" placeholder="New task… (@inky @pixel @scout)" />
+                <button class="btn btn-primary" style="padding:6px 10px;" id="oc-task-add-${s.id}">Add</button>
+              </div>
+            </div>
+
+            <!-- OC chat -->
+            <div class="chat-panel">
+              <div class="panel-header"><span class="panel-label" id="oc-chat-label-${s.id}">💬 Chat</span></div>
+              <div class="chat-messages" id="oc-chat-msgs-${s.id}"></div>
+              <div class="chat-input">
+                <input id="oc-chat-input-${s.id}" type="text" placeholder="Message…" />
+                <button class="btn btn-primary" style="padding:7px 10px;" id="oc-chat-send-${s.id}">Send</button>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Wire events
+        document.getElementById(`oc-stop-${s.id}`).addEventListener('click', () => {
+          if (s.status === 'running') stopInstance(s.id);
+          else restartInstance(s.id);
+        });
+        document.getElementById(`oc-delete-${s.id}`).addEventListener('click', () => {
+          if (confirm(`Delete ${s.name}? Tasks and chat history will be lost.`)) deleteInstance(s.id);
+        });
+
+        const taskInput = document.getElementById(`oc-task-input-${s.id}`);
+        const taskAddBtn = document.getElementById(`oc-task-add-${s.id}`);
+        const addTaskHandler = () => { const t = taskInput.value.trim(); if (t) { taskInput.value = ''; addTask(s, t); } };
+        taskAddBtn.addEventListener('click', addTaskHandler);
+        taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTaskHandler(); } });
+
+        const chatInput = document.getElementById(`oc-chat-input-${s.id}`);
+        const chatSendBtn = document.getElementById(`oc-chat-send-${s.id}`);
+        const sendHandler = () => { const t = chatInput.value.trim(); if (t) { chatInput.value = ''; sendChat(s, t); } };
+        chatSendBtn.addEventListener('click', sendHandler);
+        chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendHandler(); } });
+
+        renderOCAgents(s);
+        renderOCKanban(s);
+        renderOCChat(s);
+        renderOCActivity(s);
+      }
+
+      // ═══════════════════════════════════════
+      //  OC AGENTS
+      // ═══════════════════════════════════════
+      function renderOCAgents(s) {
+        const el = document.getElementById(`oc-agents-${s.id}`);
+        if (!el) return;
+        el.innerHTML = AGENTS.map(a => {
+          const cid = s.containers.get(a.id);
+          const info = cid ? s.manager.get(cid) : null;
+          const status = info ? info.status : 'off';
+          const sel = a.id === s.selectedAgent ? 'selected' : '';
+          return `<div class="agent-card ${sel}" data-agent="${a.id}">
+            <div class="agent-row"><span class="agent-emoji">${a.emoji}</span><span class="agent-name">${a.name}</span><span class="agent-role">${a.role}</span></div>
+            <div class="agent-meta"><span class="dot ${status}"></span> ${status}</div>
+          </div>`;
+        }).join('');
+        el.querySelectorAll('.agent-card').forEach(card => {
+          card.addEventListener('click', () => { s.selectedAgent = card.dataset.agent; renderOCAgents(s); renderOCChat(s); });
+        });
+      }
+
+      // ═══════════════════════════════════════
+      //  OC ACTIVITY
+      // ═══════════════════════════════════════
+      function addActivity(s, msg, agentId) {
+        const a = agentId ? agentById(agentId) : null;
+        const prefix = a ? `${a.emoji} ${a.name}` : '⚡';
+        s.activityLog.push({ time: now(), msg, prefix });
+        if (s.activityLog.length > 80) s.activityLog.shift();
+        renderOCActivity(s);
+      }
+
+      function renderOCActivity(s) {
+        const el = document.getElementById(`oc-activity-${s.id}`);
+        if (!el) return;
+        el.innerHTML = s.activityLog.slice(-15).reverse()
+          .map(a => `<div class="activity-item"><span class="time">${a.time}</span> <span class="actor">${a.prefix}</span> ${esc(a.msg)}</div>`)
+          .join('');
+      }
+
+      // ═══════════════════════════════════════
+      //  OC TASKS
+      // ═══════════════════════════════════════
+      function addTask(s, title, opts = {}) {
+        const tagMatch = title.match(/@(\w+)/);
+        let assignee = opts.assignee || 'main';
+        let cleanTitle = title;
+        if (tagMatch) {
+          const match = AGENTS.find(a => a.id === tagMatch[1] || a.name.toLowerCase() === tagMatch[1].toLowerCase());
+          if (match) { assignee = match.id; cleanTitle = title.replace(tagMatch[0], '').trim(); }
+        }
+        const task = { id: 't' + (s.taskSeq++), title: cleanTitle, status: opts.status || 'inbox', assignee, priority: opts.priority || 'normal', createdAt: new Date().toISOString(), comments: [] };
+        s.tasks.push(task);
+        syncTasks(s);
+        renderOCKanban(s);
+        renderInstanceList();
+        addActivity(s, `created "${cleanTitle}"`, assignee);
+        scheduleSave(s);
+        return task;
+      }
+
+      function updateTaskStatus(s, taskId, newStatus, byAgent) {
+        const t = s.tasks.find(t => t.id === taskId);
+        if (!t || t.status === newStatus) return;
+        const old = t.status;
+        t.status = newStatus;
+        t.comments.push({ by: byAgent || 'system', text: `${STATUS_LABELS[old]} → ${STATUS_LABELS[newStatus]}`, at: new Date().toISOString() });
+        syncTasks(s); renderOCKanban(s); renderOCTaskDetail(s); renderInstanceList();
+        addActivity(s, `"${t.title}" → ${STATUS_LABELS[newStatus]}`, byAgent);
+        scheduleSave(s);
+      }
+
+      function syncTasks(s) {
+        for (const [, cid] of s.containers) {
+          s.manager.execute(cid, `
+            const fs = require('fs');
+            try { fs.mkdirSync('/data/shared', { recursive: true }); } catch {}
+            fs.writeFileSync('/data/shared/tasks.json', ${JSON.stringify(JSON.stringify(s.tasks))});
+          `).catch(() => {});
+        }
+      }
+
+      function renderOCKanban(s) {
+        for (const status of STATUSES) {
+          const col = document.getElementById(`oc-col-${status}-${s.id}`);
+          const count = document.getElementById(`oc-count-${status}-${s.id}`);
+          if (!col || !count) continue;
+          const sts = s.tasks.filter(t => t.status === status);
+          count.textContent = sts.length;
+          col.innerHTML = sts.map(t => {
+            const a = agentById(t.assignee);
+            const sel = t.id === s.selectedTaskId ? 'selected' : '';
+            const pri = (t.priority === 'high' || t.priority === 'urgent') ? t.priority : '';
+            return `<div class="task-card ${sel}" data-id="${t.id}">
+              <div class="task-title">${esc(t.title)}</div>
+              <div class="task-meta"><span>${a ? a.emoji + ' ' + a.name : t.assignee}</span>${pri ? `<span class="task-priority ${pri}">${pri}</span>` : ''}${t.comments.length ? `<span>💬${t.comments.length}</span>` : ''}</div>
+            </div>`;
+          }).join('');
+          col.querySelectorAll('.task-card').forEach(card => {
+            card.addEventListener('click', () => { s.selectedTaskId = card.dataset.id; renderOCKanban(s); renderOCTaskDetail(s); });
+          });
+        }
+      }
+
+      function renderOCTaskDetail(s) {
+        const el = document.getElementById(`oc-task-detail-${s.id}`);
+        if (!el) return;
+        const t = s.tasks.find(t => t.id === s.selectedTaskId);
+        if (!t) { el.classList.remove('open'); return; }
+        el.classList.add('open');
+        const statusOpts = STATUSES.map(st => `<option value="${st}" ${st === t.status ? 'selected' : ''}>${STATUS_LABELS[st]}</option>`).join('');
+        const assignOpts = AGENTS.map(a => `<option value="${a.id}" ${a.id === t.assignee ? 'selected' : ''}>${a.emoji} ${a.name}</option>`).join('');
+        const comments = t.comments.map(c => { const ca = agentById(c.by); return `<div class="task-comment"><span class="comment-author">${ca ? ca.emoji + ' ' + ca.name : c.by}</span> ${esc(c.text)}</div>`; }).join('');
+        el.innerHTML = `
+          <div class="task-detail-title">${esc(t.title)}</div>
+          <div class="task-detail-row">
+            <label>Status</label><select id="td-status-${s.id}">${statusOpts}</select>
+            <label style="margin-left:8px;">Assign</label><select id="td-assign-${s.id}">${assignOpts}</select>
+            <button class="btn btn-secondary" style="padding:2px 6px;font-size:0.5rem;margin-left:auto;" id="td-close-${s.id}">✕</button>
+          </div>
+          ${comments ? `<div style="margin-top:4px;border-top:1px solid var(--border);padding-top:4px;">${comments}</div>` : ''}
+        `;
+        document.getElementById(`td-status-${s.id}`).addEventListener('change', e => updateTaskStatus(s, t.id, e.target.value, s.selectedAgent));
+        document.getElementById(`td-assign-${s.id}`).addEventListener('change', e => {
+          t.assignee = e.target.value; syncTasks(s); renderOCKanban(s); renderInstanceList();
+          addActivity(s, `reassigned "${t.title}" → ${agentById(e.target.value)?.name}`, s.selectedAgent);
+          scheduleSave(s);
+        });
+        document.getElementById(`td-close-${s.id}`).addEventListener('click', () => { s.selectedTaskId = null; renderOCKanban(s); renderOCTaskDetail(s); });
+      }
+
+      // ═══════════════════════════════════════
+      //  OC CHAT
+      // ═══════════════════════════════════════
+      function getHistory(s, agentId) {
+        if (!s.chatHistories.has(agentId)) s.chatHistories.set(agentId, []);
+        return s.chatHistories.get(agentId);
+      }
+
+      function appendChatMsg(s, type, sender, text) {
+        const container = document.getElementById(`oc-chat-msgs-${s.id}`);
+        if (!container) return null;
+        const div = document.createElement('div');
+        div.className = `msg ${type}`;
+        if (type === 'system') { div.innerHTML = esc(text || sender); }
+        else { div.innerHTML = `<div class="msg-header">${esc(sender)}</div><div class="msg-body">${esc(text)}</div>`; }
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        return div;
+      }
+
+      function renderOCChat(s) {
+        const label = document.getElementById(`oc-chat-label-${s.id}`);
+        const container = document.getElementById(`oc-chat-msgs-${s.id}`);
+        if (!label || !container) return;
+        const a = agentById(s.selectedAgent);
+        label.textContent = `💬 ${a.emoji} ${a.name}`;
+        container.innerHTML = '';
+        const h = getHistory(s, s.selectedAgent);
+        if (!h.length) { appendChatMsg(s, 'system', '', `Chat with ${a.emoji} ${a.name}`); }
+        else { for (const m of h) appendChatMsg(s, m.role === 'user' ? 'user' : 'agent', m.role === 'user' ? 'You' : `${a.emoji} ${a.name}`, m.content); }
+      }
+
+      async function sendChat(s, text) {
+        if (s.streaming) return;
+        const agent = agentById(s.selectedAgent);
+        const cid = s.containers.get(s.selectedAgent);
+        if (!cid) return;
+
+        const history = getHistory(s, s.selectedAgent);
+        history.push({ role: 'user', content: text });
+        appendChatMsg(s, 'user', 'You', text);
+        addActivity(s, `messaged ${agent.name}`);
+
+        const thinkingEl = appendChatMsg(s, 'thinking', `${agent.emoji} ${agent.name}`, 'Thinking');
+        s.streaming = true;
+        const chatInput = document.getElementById(`oc-chat-input-${s.id}`);
+        if (chatInput) chatInput.disabled = true;
+
+        try {
+          // Build context INSIDE the container
+          const ctxResult = await s.manager.execute(cid, `
+            const fs = require('fs'); const path = require('path'); const cwd = process.cwd();
+            let soul=''; try { soul = fs.readFileSync(path.join(cwd,'SOUL.md'),'utf-8'); } catch {}
+            let memory=''; try { memory = fs.readFileSync(path.join(cwd,'MEMORY.md'),'utf-8'); } catch {}
+            let tasks='(none)'; try { tasks = fs.readFileSync('/data/shared/tasks.json','utf-8'); } catch {}
+            let working=''; try { working = fs.readFileSync(path.join(cwd,'shared/WORKING.md'),'utf-8'); } catch {}
+            module.exports = { soul, memory: memory.slice(-2000), tasks, working };
+          `);
+          const ctx = ctxResult.exports || {};
+
+          let taskSummary = '(none)';
+          try {
+            const parsed = JSON.parse(ctx.tasks || '[]');
+            if (parsed.length) taskSummary = parsed.map(t => `- [${t.status}] ${t.title} (${agentById(t.assignee)?.name || t.assignee})`).join('\n');
+          } catch {}
+
+          const systemPrompt = `${ctx.soul}\n\n---\n## Live Context\nYou are ${agent.emoji} ${agent.name}, ${agent.role}, running inside an almostnode browser container.\n\n### Tasks\n${taskSummary}\n\n### Memory\n${ctx.memory || '(empty)'}\n\n### Actions\nUse EXACT tags to take actions:\n- [CREATE_TASK] title | assignee_name | priority\n- [MOVE_TASK] task_id | new_status\n\nBe concise. Stay in character.`;
+
+          const messages = history.map(m => ({ role: m.role, content: m.content }));
+          const res = await fetch('/api/anthropic/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1024, system: systemPrompt, messages, stream: true }),
+          });
+
+          if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0,200)}`);
+
+          thinkingEl?.remove();
+          const msgEl = appendChatMsg(s, 'agent', `${agent.emoji} ${agent.name}`, '');
+          const bodyEl = msgEl?.querySelector('.msg-body');
+          let fullText = '';
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buf = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n'); buf = lines.pop() || '';
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const d = line.slice(6); if (d === '[DONE]') continue;
+              try {
+                const ev = JSON.parse(d);
+                if (ev.type === 'content_block_delta' && ev.delta?.text) {
+                  fullText += ev.delta.text;
+                  if (bodyEl) bodyEl.textContent = fullText;
+                  const msgContainer = document.getElementById(`oc-chat-msgs-${s.id}`);
+                  if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+                }
+              } catch {}
+            }
+          }
+
+          history.push({ role: 'assistant', content: fullText });
+          addActivity(s, `replied`, s.selectedAgent);
+          scheduleSave(s);
+
+          // Parse actions
+          for (const m of fullText.matchAll(/\[CREATE_TASK\]\s*(.+?)\s*\|\s*(\w+)\s*\|\s*(\w+)/g)) {
+            const assignee = AGENTS.find(a => a.name.toLowerCase() === m[2].toLowerCase() || a.id === m[2])?.id || 'main';
+            addTask(s, m[1].trim(), { assignee, priority: m[3].trim() });
+          }
+          for (const m of fullText.matchAll(/\[MOVE_TASK\]\s*(\w+)\s*\|\s*(\w+)/g)) {
+            if (STATUSES.includes(m[2])) updateTaskStatus(s, m[1], m[2], s.selectedAgent);
+          }
+
+          // Write to container memory
+          await s.manager.execute(cid, `
+            const fs=require('fs'),path=require('path'),mp=path.join(process.cwd(),'MEMORY.md');
+            let m='';try{m=fs.readFileSync(mp,'utf-8');}catch{}
+            fs.writeFileSync(mp,m+'\\n---\\n## '+new Date().toISOString()+'\\nUser: '+${JSON.stringify(text)}+'\\nMe: '+${JSON.stringify(fullText.slice(0,500))}+'\\n');
+          `).catch(() => {});
+
+        } catch (err) {
+          thinkingEl?.remove();
+          appendChatMsg(s, 'system', '', `Error: ${err.message}`);
+        } finally {
+          s.streaming = false;
+          if (chatInput) chatInput.disabled = false;
+          chatInput?.focus();
+        }
+      }
+
+      // ═══════════════════════════════════════
+      //  INSTANCE LIFECYCLE
+      // ═══════════════════════════════════════
+      async function loadSnapshot() {
+        if (snapshot) return snapshot;
+
+        // Try Cache API first (instant on reload)
+        setProgress(5, 'Checking cache…', '');
+        const cached = await loadCachedSnapshot();
+        if (cached) {
+          setProgress(18, 'Loaded from cache', `${cached.files.length} entries`);
+          snapshot = cached;
+          return snapshot;
+        }
+
+        // Fetch from network
+        const res = await fetch('/dist/openclaw/openclaw-vfs-snapshot.json');
+        if (!res.ok) throw new Error(`Snapshot not found (${res.status}). Run: npm run openclaw:build`);
+        if (res.body) {
+          const reader = res.body.getReader(); const chunks = []; let received = 0;
+          const total = parseInt(res.headers.get('content-length') || '0', 10);
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value); received += value.length;
+            if (total) setProgress(Math.min(18, Math.floor((received/total)*18)), 'Downloading snapshot…', `${(received/1048576).toFixed(1)} / ${(total/1048576).toFixed(1)} MB`);
+          }
+          const all = new Uint8Array(received); let pos = 0;
+          for (const c of chunks) { all.set(c, pos); pos += c.length; }
+          snapshot = JSON.parse(new TextDecoder().decode(all));
+        } else { snapshot = await res.json(); }
+
+        // Cache for next time
+        cacheSnapshot(snapshot).catch(() => {});
+        return snapshot;
+      }
+
+      async function createInstance() {
+        const key = el.apiKey.value.trim();
+        if (!key) { el.apiKey.focus(); return; }
+
+        el.createBtn.disabled = true;
+        el.loadingOverlay.classList.remove('hidden');
+        setProgress(5, 'Preparing instance…', '');
+
+        try {
+          const snap = await loadSnapshot();
+          setProgress(20, 'Creating containers…', `${snap.files.length} entries`);
+
+          const seq = ++instanceSeq;
+          const name = `OC-${seq}`;
+          const s = createInstanceState(`inst-${seq}`, name, key);
+          instances.set(s.id, s);
+          selectedInstanceId = s.id;
+
+          const env = {
+            ANTHROPIC_API_KEY: key,
+            OPENCLAW_TOKEN: 'demo-' + Math.random().toString(36).slice(2,10),
+            NODE_ENV: 'production',
+          };
+
+          for (let i = 0; i < AGENTS.length; i++) {
+            const a = AGENTS[i];
+            setProgress(25 + Math.floor((i/AGENTS.length)*50), `Spawning ${a.emoji} ${a.name}…`, `${name} · ${a.role}`);
+            const info = await s.manager.spawn({ id: `${s.id}-${a.id}`, vfsSnapshot: snap, cwd: a.cwd, env: { ...env, AGENT_ID: a.id } });
+            s.containers.set(a.id, info.id);
+            addActivity(s, `spawned (${info.runtimeMode})`, a.id);
+          }
+
+          setProgress(80, 'Wiring stubs…', '');
+          for (const a of AGENTS) {
+            await s.manager.execute(s.containers.get(a.id), `
+              const loader = require('/openclaw/loader.cjs'); loader.registerStubs(); loader.setupEnv();
+            `);
+          }
+
+          setProgress(90, 'Reading identities…', '');
+          for (const a of AGENTS) {
+            try {
+              const r = await s.manager.execute(s.containers.get(a.id), `const fs=require('fs');module.exports=fs.readFileSync(process.cwd()+'/SOUL.md','utf-8');`);
+              s.agentSouls.set(a.id, r.exports || '');
+            } catch { s.agentSouls.set(a.id, ''); }
+          }
+
+          syncTasks(s);
+          s.status = 'running';
+          addActivity(s, 'instance launched');
+
+          // Clawe welcome
+          const h = getHistory(s, 'main');
+          h.push({ role: 'assistant', content: "Squad's online. What needs doing?" });
+
+          // Save to IndexedDB
+          scheduleSave(s);
+
+          setProgress(100, 'Ready!', '');
+          setTimeout(() => el.loadingOverlay.classList.add('hidden'), 300);
+
+          renderInstanceList();
+          renderInstanceView();
+
+        } catch (err) {
+          el.loadingOverlay.classList.add('hidden');
+          appendChatMsg(inst(), 'system', '', `Launch failed: ${err.message}`);
+        } finally {
+          el.createBtn.disabled = false;
+        }
+      }
+
+      async function stopInstance(instanceId) {
+        const s = instances.get(instanceId);
+        if (!s) return;
+        // Save final state before disposing
+        await dbPut('instances', serializeInstance(s)).catch(() => {});
+        await s.manager.dispose();
+        s.containers.clear();
+        s.status = 'stopped';
+        addActivity(s, 'instance stopped');
+        scheduleSave(s);
+        renderInstanceList();
+        renderInstanceView();
+      }
+
+      async function restartInstance(instanceId) {
+        const s = instances.get(instanceId);
+        if (!s || s.status === 'running') return;
+
+        el.loadingOverlay.classList.remove('hidden');
+        setProgress(10, `Restarting ${s.name}…`, '');
+
+        try {
+          const snap = await loadSnapshot();
+          s.manager = new AgentContainerManager({
+            maxContainers: 10, defaultExecutionTimeoutMs: 30_000,
+            runtime: { dangerouslyAllowSameOrigin: true, useWorker: 'auto' },
+          });
+
+          const env = { ANTHROPIC_API_KEY: s.apiKey, OPENCLAW_TOKEN: 'demo-' + Math.random().toString(36).slice(2,10), NODE_ENV: 'production' };
+          for (let i = 0; i < AGENTS.length; i++) {
+            const a = AGENTS[i];
+            setProgress(20 + Math.floor((i/AGENTS.length)*60), `Spawning ${a.emoji} ${a.name}…`, s.name);
+            const info = await s.manager.spawn({ id: `${s.id}-${a.id}-r`, vfsSnapshot: snap, cwd: a.cwd, env: { ...env, AGENT_ID: a.id } });
+            s.containers.set(a.id, info.id);
+          }
+          for (const a of AGENTS) {
+            await s.manager.execute(s.containers.get(a.id), `const loader=require('/openclaw/loader.cjs');loader.registerStubs();loader.setupEnv();`);
+          }
+          syncTasks(s);
+          s.status = 'running';
+          addActivity(s, 'restarted');
+          scheduleSave(s);
+        } catch (err) {
+          addActivity(s, `restart failed: ${err.message}`);
+        }
+
+        el.loadingOverlay.classList.add('hidden');
+        renderInstanceList();
+        renderInstanceView();
+      }
+
+      async function deleteInstance(instanceId) {
+        const s = instances.get(instanceId);
+        if (s) {
+          if (s.status === 'running') await s.manager.dispose();
+          instances.delete(instanceId);
+        }
+        await dbDelete('instances', instanceId).catch(() => {});
+        try { localStorage.removeItem(`oc-backup-${instanceId}`); } catch {}
+        if (selectedInstanceId === instanceId) {
+          selectedInstanceId = instances.size > 0 ? [...instances.keys()][0] : null;
+        }
+        renderInstanceList();
+        renderInstanceView();
+      }
+
+      /** Restore saved instances from IndexedDB, re-spawn their containers */
+      async function restoreInstances() {
+        let saved = [];
+        try { saved = await dbGetAll('instances'); } catch {}
+
+        // Also check localStorage backups (from unload)
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('oc-backup-')) {
+            try {
+              const data = JSON.parse(localStorage.getItem(key));
+              if (data?.id && !saved.some(s => s.id === data.id)) saved.push(data);
+              localStorage.removeItem(key); // migrate to IDB
+            } catch {}
+          }
+        }
+
+        if (saved.length === 0) return;
+
+        el.loadingOverlay.classList.remove('hidden');
+        setProgress(5, `Restoring ${saved.length} instance(s)…`, '');
+
+        const snap = await loadSnapshot();
+
+        for (let si = 0; si < saved.length; si++) {
+          const data = saved[si];
+          setProgress(20 + Math.floor((si / saved.length) * 70), `Restoring ${data.name}…`, '');
+
+          const s = createInstanceState(data.id, data.name, data.apiKey);
+          s.tasks = data.tasks || [];
+          s.taskSeq = data.taskSeq || s.tasks.length + 1;
+          s.activityLog = data.activityLog || [];
+          s.selectedAgent = data.selectedAgent || 'main';
+
+          // Restore chat histories
+          if (data.chatHistories) {
+            for (const [agentId, msgs] of Object.entries(data.chatHistories)) {
+              s.chatHistories.set(agentId, msgs);
+            }
+          }
+
+          // Restore souls
+          if (data.agentSouls) {
+            for (const [agentId, soul] of Object.entries(data.agentSouls)) {
+              s.agentSouls.set(agentId, soul);
+            }
+          }
+
+          // Track highest instance seq
+          const seqMatch = data.id.match(/inst-(\d+)/);
+          if (seqMatch) instanceSeq = Math.max(instanceSeq, parseInt(seqMatch[1]));
+
+          // Re-spawn containers
+          const env = {
+            ANTHROPIC_API_KEY: data.apiKey,
+            OPENCLAW_TOKEN: 'demo-' + Math.random().toString(36).slice(2, 10),
+            NODE_ENV: 'production',
+          };
+
+          try {
+            for (let i = 0; i < AGENTS.length; i++) {
+              const a = AGENTS[i];
+              setProgress(20 + Math.floor(((si * AGENTS.length + i) / (saved.length * AGENTS.length)) * 70),
+                `${data.name}: ${a.emoji} ${a.name}…`, 'Spawning containers');
+              const info = await s.manager.spawn({ id: `${s.id}-${a.id}`, vfsSnapshot: snap, cwd: a.cwd, env: { ...env, AGENT_ID: a.id } });
+              s.containers.set(a.id, info.id);
+            }
+
+            // Wire stubs
+            for (const a of AGENTS) {
+              await s.manager.execute(s.containers.get(a.id), `
+                const loader = require('/openclaw/loader.cjs'); loader.registerStubs(); loader.setupEnv();
+              `);
+            }
+
+            // Read souls if not cached
+            for (const a of AGENTS) {
+              if (!s.agentSouls.has(a.id) || !s.agentSouls.get(a.id)) {
+                try {
+                  const r = await s.manager.execute(s.containers.get(a.id), `const fs=require('fs');module.exports=fs.readFileSync(process.cwd()+'/SOUL.md','utf-8');`);
+                  s.agentSouls.set(a.id, r.exports || '');
+                } catch { s.agentSouls.set(a.id, ''); }
+              }
+            }
+
+            // Replay VFS state: write tasks + memory back into containers
+            syncTasks(s);
+            for (const a of AGENTS) {
+              const chatMsgs = s.chatHistories.get(a.id) || [];
+              if (chatMsgs.length > 0) {
+                const memoryEntries = chatMsgs
+                  .filter(m => m.role === 'assistant')
+                  .slice(-5)
+                  .map(m => `\n---\n## Restored\n${m.content.slice(0, 300)}`)
+                  .join('');
+                if (memoryEntries) {
+                  await s.manager.execute(s.containers.get(a.id), `
+                    const fs = require('fs'), path = require('path');
+                    fs.writeFileSync(path.join(process.cwd(), 'MEMORY.md'), ${JSON.stringify(memoryEntries)});
+                  `).catch(() => {});
+                }
+              }
+            }
+
+            s.status = 'running';
+            addActivity(s, `restored (${s.tasks.length} tasks, ${[...s.chatHistories.values()].reduce((n, h) => n + h.length, 0)} messages)`);
+          } catch (err) {
+            s.status = 'stopped';
+            addActivity(s, `restore failed: ${err.message}`);
+          }
+
+          instances.set(s.id, s);
+          // Save migrated data to IDB (cleans up any localStorage backups)
+          await dbPut('instances', serializeInstance(s)).catch(() => {});
+        }
+
+        selectedInstanceId = saved[0]?.id || null;
+        setProgress(100, 'Restored!', '');
+        setTimeout(() => el.loadingOverlay.classList.add('hidden'), 300);
+        renderInstanceList();
+        renderInstanceView();
+      }
+
+      // ═══════════════════════════════════════
+      //  WIRING
+      // ═══════════════════════════════════════
+      el.createBtn.addEventListener('click', () => void createInstance());
+
+      // Persist key
+      try { const saved = localStorage.getItem('openclaw-key'); if (saved) el.apiKey.value = saved; } catch {}
+      el.apiKey.addEventListener('change', () => { try { localStorage.setItem('openclaw-key', el.apiKey.value); } catch {} });
+
+      renderInstanceList();
+
+      // Restore saved instances on load
+      restoreInstances().catch(e => console.warn('Restore failed:', e));
+
+      window.addEventListener('beforeunload', () => {
+        saveAllNow();
+        for (const s of instances.values()) s.manager.dispose();
+      });
+    </script>
+  </body>
+</html>

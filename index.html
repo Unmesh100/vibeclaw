@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>vibeclaw.dev — OpenClaw in your browser</title>
+    <meta name="description" content="Run OpenClaw coding agents entirely in the browser. Connect to your live gateway or boot a self-contained sandbox. No server required.">
+    <meta name="keywords" content="openclaw, ai agent, coding agent, browser, javascript, runtime, webgpu, sandbox, playground">
+    <meta name="author" content="vibeclaw">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://vibeclaw.dev/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vibeclaw.dev/">
+    <meta property="og:title" content="vibeclaw.dev — OpenClaw in your browser">
+    <meta property="og:description" content="Run OpenClaw coding agents entirely in the browser. Connect to your live gateway or boot a self-contained sandbox.">
+    <meta property="og:image" content="https://vibeclaw.dev/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="vibeclaw.dev">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="vibeclaw.dev — OpenClaw in your browser">
+    <meta name="twitter:description" content="Run OpenClaw coding agents entirely in the browser. Connect to your live gateway or boot a self-contained sandbox.">
+    <meta name="twitter:image" content="https://vibeclaw.dev/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --black: #0c0c0c;
+        --surface: #141414;
+        --surface-2: #1a1a1a;
+        --border: #2a2a2a;
+        --border-bright: #3a3a3a;
+        --text: #c0c0c0;
+        --text-bright: #f0f0f0;
+        --text-dim: #999;
+        --accent: #ff5c5c;
+        --accent-dim: #ff4040;
+        --accent-bg: rgba(255, 92, 92, 0.06);
+        --accent-border: rgba(255, 92, 92, 0.15);
+        --mono: 'IBM Plex Mono', 'Menlo', monospace;
+        --sans: 'Instrument Sans', system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: var(--sans);
+        background: var(--black);
+        color: var(--text);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+        position: relative;
+      }
+
+      /* Scanline overlay */
+      body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0,0,0,0.03) 2px,
+          rgba(0,0,0,0.03) 4px
+        );
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* ── Nav ── */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(12, 12, 12, 0.92);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--border);
+      }
+      .nav-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-logo {
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--accent);
+        text-decoration: none;
+        letter-spacing: -0.01em;
+      }
+      .nav-links {
+        display: flex;
+        gap: 24px;
+        list-style: none;
+      }
+      .nav-links a {
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        color: var(--text-dim);
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        transition: color 0.15s;
+      }
+      .nav-links a:hover { color: var(--text-bright); }
+
+      /* ── Hero ── */
+      .hero {
+        padding: 96px 24px 32px;
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 48px;
+      }
+      .hero-content {
+        flex: 1;
+        min-width: 0;
+      }
+      .hero-visual {
+        flex: 0 0 400px;
+        height: 400px;
+        position: relative;
+      }
+      .hero-visual canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      .hero-label {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--accent);
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .hero-label::before {
+        content: '';
+        width: 20px;
+        height: 1px;
+        background: var(--accent);
+      }
+      .hero h1 {
+        font-family: var(--sans);
+        font-size: clamp(2.8rem, 7vw, 4.5rem);
+        font-weight: 700;
+        color: var(--text-bright);
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+        margin-bottom: 24px;
+        max-width: 700px;
+      }
+      .hero .subtitle {
+        font-size: 1.1rem;
+        color: var(--text);
+        line-height: 1.65;
+        max-width: 520px;
+        margin-bottom: 40px;
+      }
+
+      /* Install box */
+      .install-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 14px 18px;
+        margin-bottom: 28px;
+        font-family: var(--mono);
+        font-size: 0.88rem;
+      }
+      .install-box .prompt { color: var(--accent); user-select: none; }
+      .install-box code { color: var(--text-bright); }
+      .install-box button {
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text-dim);
+        cursor: pointer;
+        padding: 4px 6px;
+        display: flex;
+        align-items: center;
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .install-box button:hover {
+        color: var(--accent);
+        border-color: var(--accent-border);
+      }
+      .install-box button svg { width: 14px; height: 14px; }
+
+      /* CTA row */
+      .cta-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 28px;
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        font-weight: 500;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        transition: all 0.15s;
+        border: 1px solid transparent;
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: var(--black);
+      }
+      .btn-primary:hover {
+        background: #ff7070;
+        box-shadow: 0 0 20px rgba(255, 92, 92, 0.25);
+      }
+      .btn-secondary {
+        background: transparent;
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .btn-secondary:hover {
+        background: rgba(255,92,92,0.1);
+        border-color: var(--accent);
+        color: var(--text-bright);
+      }
+      .btn svg { width: 15px; height: 15px; }
+
+      /* Badges */
+      .badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .badges a { text-decoration: none; line-height: 0; }
+      .badges img { height: 20px; }
+
+      /* ── Section ── */
+      .section {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      .section-header {
+        padding: 80px 0 48px;
+        border-top: 1px solid var(--border);
+      }
+      .section-label {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-dim);
+        margin-bottom: 12px;
+      }
+      .section-header h2 {
+        font-family: var(--sans);
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--text-bright);
+        letter-spacing: -0.02em;
+      }
+
+      /* ── Code examples ── */
+      .code-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        margin-bottom: 80px;
+      }
+      @media (max-width: 900px) {
+        .code-grid { grid-template-columns: 1fr; }
+      }
+      .code-card {
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .code-card:hover { background: var(--surface-2); }
+      .code-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--text-dim);
+      }
+      .code-tab .indicator {
+        width: 6px;
+        height: 6px;
+        background: var(--accent);
+      }
+      .code-card pre {
+        padding: 16px;
+        overflow-x: auto;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        line-height: 1.7;
+        color: var(--text);
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      /* Syntax — muted, monochrome-forward with accent pops */
+      .kw { color: #ff3333; }
+      .str { color: #e8c872; }
+      .fn { color: var(--text-bright); }
+      .cm { color: #888; }
+      .op { color: #888; }
+      .num { color: #e8c872; }
+
+      /* ── Features ── */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        margin-bottom: 80px;
+      }
+      @media (max-width: 768px) {
+        .features-grid { grid-template-columns: 1fr; }
+      }
+      @media (min-width: 769px) and (max-width: 1024px) {
+        .features-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      .feature-card {
+        background: var(--surface);
+        padding: 28px 24px;
+        transition: background 0.15s;
+      }
+      .feature-card:hover { background: var(--surface-2); }
+      .feature-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        border: 1px solid var(--accent-border);
+        background: var(--accent-bg);
+      }
+      .feature-icon svg {
+        width: 16px;
+        height: 16px;
+        stroke: var(--accent);
+        fill: none;
+        stroke-width: 1.5;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .feature-card h3 {
+        font-family: var(--mono);
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-bright);
+        margin-bottom: 8px;
+        letter-spacing: -0.01em;
+      }
+      .feature-card p {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        line-height: 1.55;
+      }
+
+      /* ── Demos ── */
+      .demos-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+        margin-bottom: 80px;
+      }
+      @media (max-width: 900px) {
+        .demos-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      @media (max-width: 520px) {
+        .demos-grid { grid-template-columns: 1fr; }
+      }
+      .demo-card {
+        display: block;
+        background: var(--surface);
+        padding: 24px 20px;
+        text-decoration: none;
+        color: inherit;
+        transition: background 0.15s;
+      }
+      .demo-card:hover {
+        background: var(--surface-2);
+      }
+      .demo-card:hover h3 { color: var(--accent); }
+      .demo-card h3 {
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-bright);
+        margin-bottom: 8px;
+        transition: color 0.15s;
+      }
+      .demo-card p {
+        font-size: 0.82rem;
+        color: var(--text-dim);
+        line-height: 1.5;
+        margin-bottom: 14px;
+      }
+      .demo-tag {
+        display: inline-block;
+        padding: 2px 8px;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: var(--accent-bg);
+        color: var(--accent-dim);
+        border: 1px solid var(--accent-border);
+      }
+
+      /* ── FAQ ── */
+      .faq-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        background: var(--border);
+        border: 1px solid var(--border);
+      }
+      .faq-item {
+        background: var(--surface);
+      }
+      .faq-item summary {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        font-family: var(--sans);
+        font-size: 0.92rem;
+        font-weight: 500;
+        color: var(--text);
+        cursor: pointer;
+        list-style: none;
+        transition: color 0.15s, background 0.15s;
+      }
+      .faq-item summary::-webkit-details-marker { display: none; }
+      .faq-item summary::before {
+        content: '+';
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        flex-shrink: 0;
+        width: 18px;
+        text-align: center;
+        transition: color 0.15s;
+      }
+      .faq-item[open] summary::before {
+        content: '\2212';
+        color: var(--accent);
+      }
+      .faq-item summary:hover {
+        color: var(--text-bright);
+        background: rgba(255,255,255,0.02);
+      }
+      .faq-item[open] summary {
+        color: var(--text-bright);
+        border-bottom: 1px solid var(--border);
+      }
+      .faq-answer {
+        padding: 16px 20px 16px 50px;
+        font-size: 0.88rem;
+        line-height: 1.7;
+        color: var(--text);
+      }
+      .faq-answer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .faq-answer a:hover { text-decoration: underline; }
+      .faq-answer code {
+        font-family: var(--mono);
+        font-size: 0.82em;
+        background: var(--black);
+        border: 1px solid var(--border);
+        padding: 1px 5px;
+        color: var(--accent);
+      }
+
+      /* ── Footer ── */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 28px 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      footer .footer-links {
+        display: flex;
+        gap: 20px;
+      }
+      footer a {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        transition: color 0.15s;
+      }
+      footer a:hover { color: var(--text-bright); }
+      footer .footer-byline {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--text-dim);
+      }
+      footer .footer-byline a {
+        color: var(--accent);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      footer .license {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--text-dim);
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 900px) {
+        .hero-visual { display: none; }
+      }
+      @media (max-width: 600px) {
+        .nav-links { gap: 14px; }
+        .nav-links a { font-size: 0.7rem; }
+        .hero { padding: 64px 20px 56px; }
+        .hero h1 { font-size: 2.2rem; }
+        .cta-row { flex-direction: column; }
+        .btn { justify-content: center; }
+        footer { flex-direction: column; gap: 12px; text-align: center; }
+      }
+
+      /* ── Playground ── */
+      .pg {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 24px 80px;
+      }
+      .pg-shell {
+        border: 1px solid var(--border);
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .pg-tabs {
+        display: flex;
+        align-items: stretch;
+        background: var(--black);
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .pg-tabs::-webkit-scrollbar { display: none; }
+      .pg-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 20px;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--text-dim);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+      }
+      .pg-tab:hover {
+        color: var(--text);
+        background: rgba(255,255,255,0.02);
+      }
+      .pg-tab.active {
+        color: var(--text-bright);
+        border-bottom-color: var(--accent);
+      }
+      .pg-tab .dot {
+        width: 6px;
+        height: 6px;
+        background: var(--text-dim);
+        border-radius: 0;
+        flex-shrink: 0;
+        transition: background 0.3s;
+      }
+      .pg-tab.active .dot { background: var(--accent); }
+      .pg-tab.running .dot {
+        background: var(--accent);
+        animation: pulse-dot 1.2s ease infinite;
+      }
+      .pg-tab.error .dot { background: #ff6b6b; }
+      @keyframes pulse-dot {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+      }
+      .pg-status {
+        margin-left: auto;
+        padding: 0 16px;
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-dim);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+      .pg-body {
+        display: grid;
+        grid-template-columns: 50fr 50fr;
+        height: 580px;
+      }
+      .pg-code-panel {
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid var(--border);
+        min-width: 0;
+        overflow: hidden;
+      }
+      .pg-code-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(0,0,0,0.2);
+      }
+      .pg-code-header .filename {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--text-dim);
+      }
+      .pg-code-wrap {
+        flex: 1;
+        overflow: hidden;
+        min-height: 0;
+        position: relative;
+      }
+      .pg-code-wrap textarea {
+        width: 100%;
+        height: 100%;
+        padding: 16px;
+        margin: 0;
+        border: none;
+        resize: none;
+        background: transparent;
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: var(--accent);
+        tab-size: 2;
+        outline: none;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .pg-code-wrap textarea::selection {
+        background: rgba(255, 50, 50, 0.2);
+      }
+      .pg-code-wrap pre {
+        width: 100%;
+        height: 100%;
+        padding: 16px;
+        margin: 0;
+        overflow: auto;
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: #cc8888;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .pg-code-wrap .kw { color: #ff5c5c; }           /* keywords: import, from, const, await */
+      .pg-code-wrap .fn { color: #ff9e9e; }           /* function/method names */
+      .pg-code-wrap .str { color: #cc6666; }           /* strings */
+      .pg-code-wrap .num { color: #ff7070; }           /* numbers */
+      .pg-code-wrap .cm { color: #664444; }            /* comments */
+      .pg-code-wrap .op { color: #884444; }            /* operators, punctuation */
+      .pg-code-wrap .prop { color: #dd8888; }          /* property names */
+      .pg-code-panel[hidden] { display: none; }
+      .pg-run-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 16px;
+        border-top: 1px solid var(--border);
+        background: var(--black);
+      }
+      .pg-run-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 20px;
+        font-family: var(--mono);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        cursor: pointer;
+        transition: background 0.15s, box-shadow 0.15s, color 0.15s;
+      }
+      .pg-run-btn:hover {
+        background: rgba(255, 92, 92, 0.1);
+        box-shadow: 0 0 16px rgba(255, 92, 92, 0.15);
+      }
+      .pg-run-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+      .pg-run-btn svg { width: 12px; height: 12px; }
+      .pg-run-hint {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--text-dim);
+      }
+      .pg-output-panel {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .pg-terminal-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(0,0,0,0.2);
+      }
+      .pg-terminal-header .label {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-dim);
+      }
+      .pg-terminal {
+        flex: 1;
+        padding: 12px 16px;
+        font-family: var(--mono);
+        font-size: 0.78rem;
+        line-height: 1.65;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+        min-height: 0;
+      }
+      .pg-terminal .t-info { color: var(--text-dim); }
+      .pg-terminal .t-ok { color: var(--accent); }
+      .pg-terminal .t-err { color: #ff6b6b; }
+      .pg-terminal .t-ts {
+        color: #555;
+        user-select: none;
+        margin-right: 6px;
+      }
+      .pg-terminal .t-log { color: var(--text); }
+      /* Chat formatting */
+      .chat-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px;
+        margin: 2px 4px 2px 0;
+        border: 1px solid var(--accent);
+        border-radius: 12px;
+        font-size: 0.8rem;
+        color: var(--accent);
+        background: rgba(255,92,92,0.08);
+        white-space: nowrap;
+      }
+      .chat-file {
+        display: inline-flex;
+        align-items: center;
+        padding: 1px 8px;
+        margin: 1px 2px;
+        background: rgba(255,92,92,0.06);
+        border-left: 2px solid var(--accent);
+        font-size: 0.8rem;
+        color: var(--accent);
+        font-family: var(--mono);
+      }
+      .chat-codeblock {
+        margin: 6px 0;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+        background: rgba(0,0,0,0.3);
+      }
+      .chat-codeblock-header {
+        padding: 4px 10px;
+        font-size: 0.7rem;
+        color: var(--text-dim);
+        background: rgba(0,0,0,0.2);
+        border-bottom: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .chat-codeblock pre {
+        padding: 10px 12px;
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: var(--accent);
+        overflow-x: auto;
+      }
+      .chat-inline-code {
+        background: rgba(255,92,92,0.1);
+        padding: 1px 5px;
+        border-radius: 2px;
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 0.85em;
+      }
+      .chat-heading {
+        font-weight: 700;
+        font-size: 0.95em;
+        color: var(--text-bright);
+        margin: 6px 0 2px;
+      }
+      .chat-bullet {
+        padding-left: 16px;
+        position: relative;
+        margin: 2px 0;
+      }
+      .chat-bullet::before {
+        content: '•';
+        position: absolute;
+        left: 4px;
+        color: var(--accent);
+      }
+      .pg-preview-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: rgba(0,0,0,0.2);
+      }
+      .pg-preview-header .label {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-dim);
+      }
+      .pg-preview-url {
+        font-family: var(--mono);
+        font-size: 0.65rem;
+        color: var(--accent-dim);
+        margin-left: auto;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .pg-preview-url.visible { opacity: 1; }
+      .pg-preview {
+        flex: 0 0 320px;
+        background: #0e0e1a;
+        position: relative;
+      }
+      .pg-preview iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+      }
+      .pg-preview-placeholder {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: #444;
+        pointer-events: none;
+      }
+      .pg-preview-placeholder.hidden { display: none; }
+      @media (max-width: 768px) {
+        .pg-body {
+          grid-template-columns: 1fr;
+          height: auto;
+        }
+        .pg-code-panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 360px; }
+        .pg-output-panel { max-height: 360px; }
+        .pg-preview { flex: 0 0 180px; }
+      }
+
+      /* ── Entrance animations ── */
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .hero-label, .hero h1, .hero .subtitle,
+      .install-box, .cta-row, .badges {
+        animation: fadeUp 0.5s ease both;
+      }
+      .hero h1 { animation-delay: 0.05s; }
+      .hero .subtitle { animation-delay: 0.1s; }
+      .install-box { animation-delay: 0.15s; }
+      .cta-row { animation-delay: 0.2s; }
+      .badges { animation-delay: 0.25s; }
+    </style>
+  </head>
+  <body>
+
+    <!-- Nav -->
+    <nav>
+      <div class="nav-inner">
+        <a href="./" class="nav-logo">🦀 vibeclaw.dev</a>
+        <ul class="nav-links">
+          <li><a href="./docs/">Docs</a></li>
+          <li><a href="#demos">Demos</a></li>
+          <li><a href="https://openclaw.ai">OpenClaw</a></li>
+          <li><a href="https://github.com/nicholasgriffintn/almostnode">almostnode</a></li>
+          <li><a href="https://github.com/jasonkneen/vibeclaw">GitHub</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-content">
+      <div class="hero-label">Open Source · Powered by <a href="https://github.com/nicholasgriffintn/almostnode" style="color:var(--text-bright);text-decoration:underline;text-underline-offset:2px;">almostnode</a></div>
+      <h1>Try <span style="color:var(--accent);">OpenClaw</span><br>in your browser in less than <span id="hero-time" style="display:inline-block;transition:opacity 0.4s ease, transform 0.4s ease;">30s</span></h1>
+      <p class="subtitle">No server required. Runs locally in your browser.</p>
+
+      <div class="cta-row">
+        <button class="btn btn-primary pg-launch" data-action="sandbox" style="background:var(--accent);color:#000;border:1px solid var(--accent);display:inline-flex;align-items:center;gap:8px;cursor:pointer;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Start Now</button>
+        <a href="#demos" class="btn btn-secondary">View Demos</a>
+      </div>
+
+      <div class="badges" style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:700px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a href="https://github.com/jasonkneen/vibeclaw"><img src="https://img.shields.io/badge/🦀_vibeclaw-ff5c5c?style=for-the-badge&logoColor=white" alt="vibeclaw"></a>
+          <a href="https://github.com/jasonkneen/vibeclaw/stargazers"><img src="https://img.shields.io/github/stars/jasonkneen/vibeclaw?style=for-the-badge&color=2a2a2a&labelColor=1a1a1a" alt="GitHub stars"></a>
+          <a href="https://github.com/jasonkneen/vibeclaw/blob/main/LICENSE"><img src="https://img.shields.io/github/license/jasonkneen/vibeclaw?style=for-the-badge&color=2a2a2a&labelColor=1a1a1a" alt="License"></a>
+        </div>
+      </div>
+      </div>
+      <div class="hero-visual">
+        <canvas id="hero-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- Playground -->
+    <div class="pg">
+      <div class="pg-shell">
+        <span class="pg-status" id="pg-status" style="display:none;"></span>
+
+        <!-- Credential bars (swap based on mode) -->
+        <div id="pg-creds-sandbox" style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--black);">
+          <label style="font-family:var(--mono);font-size:0.65rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;">Model</label>
+          <select id="pg-model-select" disabled style="flex:1;padding:6px 10px;background:var(--surface);border:1px solid var(--border);color:var(--text-bright);font-family:var(--mono);font-size:0.72rem;outline:none;opacity:0.9;">
+            <option value="upstage/solar-pro-3:free">☀️ Solar Pro 3 (free · reasoning)</option>
+          </select>
+
+        </div>
+
+
+        <div class="pg-body">
+          <!-- ═══ SANDBOX PANELS ═══ -->
+          <div class="pg-code-panel" data-panel="boot" id="pg-code-boot">
+            <div class="pg-code-header"><span class="filename">boot-sandbox.js</span></div>
+            <div class="pg-code-wrap"><pre><code><span class="kw">import</span> <span class="op">{</span> <span class="fn">AgentContainerManager</span> <span class="op">}</span> <span class="kw">from</span> <span class="str">'vibeclaw'</span><span class="op">;</span>
+
+<span class="cm">// Load the OpenClaw runtime</span>
+<span class="kw">const</span> snapshot <span class="op">=</span> <span class="kw">await</span> <span class="fn">fetch</span><span class="op">(</span>OPENCLAW_VFS_URL<span class="op">).</span><span class="fn">then</span><span class="op">(</span>r <span class="op">=&gt;</span> r<span class="op">.</span><span class="fn">json</span><span class="op">());</span>
+
+<span class="kw">const</span> manager <span class="op">=</span> <span class="kw">new</span> <span class="fn">AgentContainerManager</span><span class="op">({</span>
+  <span class="prop">maxContainers</span><span class="op">:</span> <span class="num">10</span><span class="op">,</span>
+  <span class="prop">defaultExecutionTimeoutMs</span><span class="op">:</span> <span class="num">30_000</span><span class="op">,</span>
+<span class="op">});</span>
+
+<span class="cm">// Spawn gateway — your key goes direct to Anthropic</span>
+<span class="kw">const</span> gw <span class="op">=</span> <span class="kw">await</span> manager<span class="op">.</span><span class="fn">spawn</span><span class="op">({</span>
+  <span class="prop">id</span><span class="op">:</span> <span class="str">'openclaw-gateway'</span><span class="op">,</span>
+  <span class="prop">vfsSnapshot</span><span class="op">:</span> snapshot<span class="op">,</span>
+  <span class="prop">cwd</span><span class="op">:</span> <span class="str">'/openclaw'</span><span class="op">,</span>
+  <span class="prop">env</span><span class="op">: {</span>
+    <span class="prop">OPENROUTER_API_KEY</span><span class="op">:</span> OPENROUTER_API_KEY<span class="op">,</span>
+    <span class="prop">NODE_ENV</span><span class="op">:</span> <span class="str">'production'</span><span class="op">,</span>
+    <span class="prop">OPENCLAW_PORT</span><span class="op">:</span> <span class="str">'18789'</span><span class="op">,</span>
+  <span class="op">},</span>
+<span class="op">});</span>
+
+<span class="kw">await</span> manager<span class="op">.</span><span class="fn">execute</span><span class="op">(</span>gw<span class="op">.</span>id<span class="op">,</span> <span class="str">`
+  const loader = require('/openclaw/loader.cjs');
+  loader.registerStubs();
+  loader.setupEnv();
+`</span><span class="op">);</span>
+
+console<span class="op">.</span><span class="fn">log</span><span class="op">(</span><span class="str">'🦀 OpenClaw Sandbox Gateway online!'</span><span class="op">);</span></code></pre></div>
+          </div>
+
+          <div class="pg-code-panel" data-panel="config" id="pg-code-config" hidden>
+            <div class="pg-code-header"><span class="filename">config.js</span></div>
+            <div class="pg-code-wrap"><pre><code><span class="cm">// Configure the sandbox agent</span>
+<span class="kw">await</span> manager<span class="op">.</span><span class="fn">execute</span><span class="op">(</span>gw<span class="op">.</span>id<span class="op">,</span> <span class="str">`
+  const config = require('/openclaw/config.cjs');
+  config.set({</span>
+    <span class="prop">agent</span><span class="op">: {</span>
+      <span class="prop">name</span><span class="op">:</span> <span class="str">'Sandbox Agent'</span><span class="op">,</span>
+      <span class="prop">emoji</span><span class="op">:</span> <span class="str">'🦀'</span><span class="op">,</span>
+      <span class="prop">model</span><span class="op">:</span> <span class="str">'claude-sonnet-4-20250514'</span><span class="op">,</span>
+      <span class="prop">maxTokens</span><span class="op">:</span> <span class="num">16384</span><span class="op">,</span>
+    <span class="op">},</span>
+    <span class="prop">gateway</span><span class="op">: {</span> <span class="prop">port</span><span class="op">:</span> <span class="num">18789</span><span class="op">,</span> <span class="prop">bind</span><span class="op">:</span> <span class="str">'loopback'</span> <span class="op">},</span>
+    <span class="prop">skills</span><span class="op">: {</span> <span class="prop">enableAll</span><span class="op">:</span> <span class="kw">true</span> <span class="op">},</span>
+    <span class="prop">cron</span><span class="op">: {</span> <span class="prop">jobs</span><span class="op">: [{</span>
+      <span class="prop">name</span><span class="op">:</span> <span class="str">'health-check'</span><span class="op">,</span>
+      <span class="prop">schedule</span><span class="op">:</span> <span class="str">'*/5 * * * *'</span><span class="op">,</span>
+      <span class="prop">task</span><span class="op">:</span> <span class="str">'Run a quick health check'</span><span class="op">,</span>
+    <span class="op">}] },</span>
+  <span class="op">});</span>
+<span class="str">`</span><span class="op">);</span>
+
+<span class="kw">await</span> manager<span class="op">.</span><span class="fn">writeFile</span><span class="op">(</span>gw<span class="op">.</span>id<span class="op">,</span> <span class="str">'/openclaw/SOUL.md'</span><span class="op">,</span> <span class="str">`
+# 🦀 Sandbox Agent
+You are a helpful coding assistant running
+entirely in a browser sandbox.
+`</span><span class="op">);</span></code></pre></div>
+          </div>
+
+          <div class="pg-code-panel" data-panel="sandbox-chat" id="pg-code-sandbox-chat" hidden>
+            <div class="pg-code-header"><span class="filename">sandbox-chat.js</span></div>
+            <div class="pg-code-wrap"><pre><code><span class="cm">// Chat with your sandbox agent — 100% in-browser</span>
+<span class="cm">// Your key goes direct to Anthropic, never our servers</span>
+
+<span class="kw">await</span> client<span class="op">.</span><span class="fn">chat</span><span class="op">(</span><span class="str">'Hello! What can you do?'</span><span class="op">, {</span>
+  <span class="prop">sessionKey</span><span class="op">:</span> <span class="str">'agent:sandbox:main'</span><span class="op">,</span>
+<span class="op">});</span>
+
+<span class="cm">// ✅ Read/write files in virtual workspace</span>
+<span class="cm">// ✅ Execute JavaScript and TypeScript</span>
+<span class="cm">// ✅ Install npm packages</span>
+<span class="cm">// ✅ Use tools (search, edit, create files)</span>
+<span class="cm">// ✅ Run cron jobs on a schedule</span>
+<span class="cm">// ✅ Maintain conversation history</span>
+
+<span class="cm">// Future: WebGPU local inference — no API key at all</span>
+<span class="cm">// import { CreateMLCEngine } from '@mlc-ai/web-llm';</span>
+<span class="cm">// const engine = await CreateMLCEngine('Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC');</span></code></pre></div>
+          </div>
+
+
+
+          <!-- Output panel -->
+          <div class="pg-output-panel">
+            <div class="pg-terminal-header" style="display:flex;align-items:center;justify-content:space-between;">
+              <span class="label">Terminal</span>
+              <a id="pg-connect-link" href="#" style="display:none;font-family:var(--mono);font-size:0.65rem;color:var(--accent);text-decoration:none;font-weight:700;">🔴 Connect →</a>
+            </div>
+            <div class="pg-terminal" id="pg-terminal" style="display:flex;align-items:center;justify-content:center;">
+              <button class="pg-launch" data-action="sandbox" style="padding:16px 40px;font-family:var(--mono);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;background:var(--accent);color:#000;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:background 0.15s,box-shadow 0.15s;" onmouseover="this.style.background='#ff7070';this.style.boxShadow='0 0 20px rgba(255,92,92,0.3)'" onmouseout="this.style.background='var(--accent)';this.style.boxShadow='none'"><svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Boot Your Gateway</button>
+            </div>
+
+            <div id="pg-chat-bar" style="display:none;border-top:1px solid var(--border);background:var(--surface);">
+              <div style="display:flex;gap:0;">
+                <input id="pg-chat-input" type="text" placeholder="Message the agent…" disabled style="flex:1;padding:16px 18px;background:transparent;border:none;color:var(--text-bright);font-family:var(--mono);font-size:0.95rem;outline:none;" />
+                <button id="pg-chat-send" disabled style="padding:16px 24px;font-family:var(--mono);font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--accent);color:#000;border:none;cursor:pointer;">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createContainer } from '/src/index.ts';
+
+    (() => {
+      const $ = id => document.getElementById(id);
+      const terminal  = $('pg-terminal');
+      const statusEl  = $('pg-status');
+      const chatBar   = $('pg-chat-bar');
+      const chatInput = $('pg-chat-input');
+      const chatSend  = $('pg-chat-send');
+      const modelSelect = $('pg-model-select');
+      const connectLink = $('pg-connect-link');
+
+      let activeTab = 'boot';
+      let pgStreamEl = null;
+      let sandboxContainer = null;
+
+      function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
+      function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function md(s) {
+        let h = esc(s);
+        // Code blocks (```)
+        h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
+          `<div class="chat-codeblock"><div class="chat-codeblock-header">${lang || 'code'}</div><pre>${code.trim()}</pre></div>`);
+        // Tool calls [TOOL: name] or [tool_call: name]
+        h = h.replace(/\[(TOOL|tool_call|tool|Tool|search|read|write|edit|bash|execute)[:_]?\s*([^\]]*)\]/g,
+          '<span class="chat-chip">🔧 $2</span>');
+        // File paths /foo/bar.js
+        h = h.replace(/(^|\s)(\/[\w\-./]+\.\w+)/gm, '$1<span class="chat-file">📄 $2</span>');
+        // Bold
+        h = h.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text-bright)">$1</strong>');
+        // Italic
+        h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+        // Inline code
+        h = h.replace(/`([^`]+)`/g, '<code class="chat-inline-code">$1</code>');
+        // Headings
+        h = h.replace(/^### (.+)/gm, '<div class="chat-heading">$1</div>');
+        h = h.replace(/^## (.+)/gm, '<div class="chat-heading" style="font-size:1em;">$1</div>');
+        // Bullet points
+        h = h.replace(/^[-•] (.+)/gm, '<div class="chat-bullet">$1</div>');
+        // Numbered lists
+        h = h.replace(/^(\d+)\. (.+)/gm, '<div class="chat-bullet"><span style="color:var(--accent);margin-right:4px;">$1.</span> $2</div>');
+        // Checkmarks
+        h = h.replace(/✅/g, '<span style="color:var(--accent);">✅</span>');
+        // Line breaks
+        h = h.replace(/\n\n/g, '<div style="height:8px;"></div>');
+        h = h.replace(/\n/g, '<br>');
+        return h;
+      }
+      function log(msg, type = 'info') {
+        const d = document.createElement('div');
+        d.className = 't-' + type;
+        d.innerHTML = '<span class="t-ts">[' + ts() + ']</span>' + esc(msg);
+        terminal.appendChild(d);
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+      function disableBtns(v) { document.querySelectorAll('.pg-launch').forEach(b => b.disabled = v); }
+
+      // Persist model choice
+      try { const m = localStorage.getItem('oc-model'); if (m) modelSelect.value = m; } catch {}
+      modelSelect.addEventListener('change', () => { try { localStorage.setItem('oc-model', modelSelect.value); } catch {} });
+
+      // Tab switching
+      document.querySelectorAll('.pg-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const id = tab.dataset.tab;
+          if (id === activeTab) return;
+          document.querySelectorAll('.pg-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          document.querySelectorAll('.pg-code-panel').forEach(p => { p.hidden = p.dataset.panel !== id; });
+          activeTab = id;
+        });
+      });
+
+      // ── Boot sandbox ──
+      async function launchSandbox() {
+        terminal.innerHTML = '';
+        terminal.style.display = '';
+        terminal.style.alignItems = '';
+        terminal.style.justifyContent = '';
+        chatBar.style.display = 'none';
+        statusEl.textContent = 'Booting…';
+        disableBtns(true);
+
+        try {
+          const t0 = performance.now();
+          log('Booting OpenClaw sandbox…', 'info');
+          const resp = await fetch('/dist/openclaw/openclaw-vfs-snapshot.json');
+          if (!resp.ok) throw new Error('Failed to load OpenClaw runtime (' + resp.status + ')');
+          const snapshot = await resp.json();
+          log('✓ OpenClaw runtime loaded', 'ok');
+
+          log('Spinning up container…', 'info');
+          sandboxContainer = createContainer();
+          sandboxContainer.runtime.onConsole = (method, args) => {
+            const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            log(msg, method === 'error' ? 'err' : 'log');
+          };
+          log('✓ Container ready', 'ok');
+
+          log('Installing agent workspace…', 'info');
+          const files = snapshot.files || snapshot;
+          let count = 0;
+          for (const [path, content] of Object.entries(files)) {
+            try {
+              const dir = path.substring(0, path.lastIndexOf('/'));
+              if (dir) sandboxContainer.fs.mkdirSync(dir, { recursive: true });
+              if (typeof content === 'string') sandboxContainer.fs.writeFileSync(path, content);
+              else if (content?.content !== undefined) sandboxContainer.fs.writeFileSync(path, content.content);
+              count++;
+            } catch {}
+          }
+          log(`✓ Workspace ready — ${count} files`, 'ok');
+
+          log('Configuring model…', 'info');
+          sandboxContainer.runtime.execute(`process.env.NODE_ENV = 'production';`, '__env.js');
+          log(`✓ ${modelSelect.value.split('/').pop().replace(':free','')}`, 'ok');
+
+          log('Starting agent…', 'info');
+          try {
+            sandboxContainer.runtime.execute(`
+              try { const l = require('/openclaw/loader.cjs'); if(l.registerStubs) l.registerStubs(); if(l.setupEnv) l.setupEnv(); console.log('✓ Agent runtime initialized'); } catch(e) { console.log('init: ' + e.message); }
+            `, '__boot.js');
+          } catch (e) { log('init: ' + e.message, 'info'); }
+
+          const bootMs = Math.round(performance.now() - t0);
+          log('', 'ok');
+          log(`🦀 OpenClaw sandbox is live (${bootMs}ms)`, 'ok');
+          log('', 'info');
+          log('Type a message below to start chatting', 'ok');
+
+          // Cross out "seconds" and show the real time
+          const heroTime = document.getElementById('hero-time');
+          if (heroTime) {
+            const t = bootMs < 1000 ? `${bootMs}ms` : `${(bootMs / 1000).toFixed(1)}s`;
+            heroTime.innerHTML = `<span style="text-decoration:line-through;opacity:0.4;transition:opacity 0.3s;">30s</span> <span id="hero-actual-time" style="color:var(--accent);font-weight:700;opacity:0;transform:scale(0.5);display:inline-block;transition:opacity 0.5s ease,transform 0.5s cubic-bezier(0.34,1.56,0.64,1);text-shadow:0 0 20px rgba(255,92,92,0.6);">${t} 🦞</span>`;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const el = document.getElementById('hero-actual-time');
+              if (el) { el.style.opacity = '1'; el.style.transform = 'scale(1)'; }
+            }));
+
+          }
+
+          statusEl.textContent = 'Running';
+          chatBar.style.display = '';
+          chatInput.disabled = false;
+          chatSend.disabled = false;
+
+          // Auto-send first message
+          chatInput.value = 'Hey! What can you do?';
+          setTimeout(sendChat, 300);
+
+          // Bridge to gateway demo via BroadcastChannel
+          setupGatewayBridge();
+        } catch (e) {
+          log('Boot failed: ' + e.message, 'err');
+          statusEl.textContent = 'Error';
+        }
+        disableBtns(false);
+      }
+
+      // ── Local gateway bridge (BroadcastChannel between tabs) ──
+      function setupGatewayBridge() {
+        const ch = new BroadcastChannel('vibeclaw-gw');
+        ch.onmessage = (evt) => {
+          const msg = evt.data;
+          if (msg.type === 'ping') {
+            // Gateway demo checking if sandbox is alive
+            const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2,'0')).join('');
+            ch.postMessage({ type: 'event', event: 'connect.challenge', payload: { nonce } });
+            return;
+          }
+          if (msg.type === 'req') {
+            const id = msg.id;
+            const m = msg.method;
+            if (m === 'connect') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: {
+                server: { host: 'vibeclaw-sandbox', version: '1.0.0' },
+                mainSessionKey: 'sandbox-session', protocolVersion: 3
+              }});
+            } else if (m === 'status') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: {
+                agent: { name: '🦀 Sandbox Agent', model: 'solar-pro-3' },
+                sessions: 1, channels: 0
+              }});
+            } else if (m === 'sessions.list') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: [
+                { key: 'sandbox-session', title: 'Sandbox', createdAt: Date.now(), messageCount: window.__sandboxHistory?.length || 0 }
+              ]});
+            } else if (m === 'agent.identity') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: { name: '🦀 Sandbox Agent', description: 'In-browser OpenClaw sandbox powered by almostnode' }});
+            } else if (m === 'skills.list') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: [
+                { name: 'chat', description: 'Chat with the agent via OpenRouter' },
+                { name: 'filesystem', description: 'Read/write files in the virtual filesystem' },
+                { name: 'execute', description: 'Execute commands in the container' }
+              ]});
+            } else if (m === 'models.list') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: [{ id: 'upstage/solar-pro-3:free', name: 'Solar Pro 3', active: true }]});
+            } else if (m === 'cron.list') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: [] });
+            } else if (m === 'agent.files' || m === 'files.list') {
+              const files = window.__container?.fs ? Object.keys(window.__container.fs._files || {}).slice(0, 20).map(f => ({ path: f })) : [];
+              ch.postMessage({ type: 'res', id, ok: true, payload: files });
+            } else if (m === 'logs.query') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: { lines: [], cursor: null }});
+            } else if (m === 'presence.list') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: [{ name: 'You', role: 'operator', connectedAt: Date.now() }]});
+            } else if (m === 'usage.cost') {
+              ch.postMessage({ type: 'res', id, ok: true, payload: { total: 0, currency: 'USD' }});
+            } else if (m === 'chat.send') {
+              // Acknowledge immediately
+              ch.postMessage({ type: 'res', id, ok: true, payload: {} });
+              // Stream response via OpenRouter
+              const userMsg = msg.params?.message || '';
+              if (!window.__sandboxHistory) window.__sandboxHistory = [];
+              window.__sandboxHistory.push({ role: 'user', content: userMsg });
+              fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ messages: window.__sandboxHistory, model: 'upstage/solar-pro-3:free' })
+              }).then(r => r.json()).then(data => {
+                const text = data.choices?.[0]?.message?.content || data.error || 'No response';
+                window.__sandboxHistory.push({ role: 'assistant', content: text });
+                ch.postMessage({ type: 'event', event: 'chat', payload: { state: 'delta', message: { content: text } }});
+                ch.postMessage({ type: 'event', event: 'chat', payload: { state: 'final' }});
+              }).catch(err => {
+                ch.postMessage({ type: 'event', event: 'chat', payload: { state: 'error', errorMessage: err.message }});
+              });
+            } else if (m === 'chat.history') {
+              const msgs = (window.__sandboxHistory || []).map((m, i) => ({ id: String(i), role: m.role, content: m.content, createdAt: Date.now() }));
+              ch.postMessage({ type: 'res', id, ok: true, payload: msgs });
+            } else {
+              ch.postMessage({ type: 'res', id, ok: true, payload: {} });
+            }
+          }
+        };
+        connectLink.href = '/examples/openclaw-gateway-demo.html?url=sandbox';
+        connectLink.target = '_blank';
+        connectLink.style.display = '';
+        log('🔴 Gateway ready — click Connect → to open dashboard', 'ok');
+      }
+
+      // ── Chat (direct Anthropic streaming) ──
+      async function sendChat() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+        chatInput.value = '';
+        chatInput.disabled = true;
+        chatSend.disabled = true;
+        log(`You: ${text}`, 'log');
+
+        if (!window.__sandboxHistory) window.__sandboxHistory = [];
+        window.__sandboxHistory.push({ role: 'user', content: text });
+
+        pgStreamEl = document.createElement('div');
+        pgStreamEl.innerHTML = '<span class="t-ts">[' + ts() + ']</span><span style="color:var(--accent);">🦀 </span>…';
+        terminal.appendChild(pgStreamEl);
+        terminal.scrollTop = terminal.scrollHeight;
+
+        try {
+          const model = modelSelect.value;
+          const isSolar = model.startsWith('upstage/solar');
+          const payload = {
+            model,
+            max_tokens: 4096,
+            stream: true,
+            messages: [
+              { role: 'system', content: 'You are 🦀 Sandbox Agent, a helpful coding assistant running in a browser sandbox powered by OpenClaw + almostnode. Be concise and helpful.' },
+              ...window.__sandboxHistory,
+            ],
+          };
+          // Enable reasoning for Solar Pro
+          if (isSolar) payload.reasoning = { enabled: true, effort: 'low' };
+
+          const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err?.error?.message || err?.error || `HTTP ${resp.status}`);
+          }
+
+          const reader = resp.body.getReader();
+          const decoder = new TextDecoder();
+          let full = '', reasoning = '', buf = '', inReasoning = false;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop() || '';
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') continue;
+              try {
+                const evt = JSON.parse(data);
+                const choice = evt.choices?.[0];
+                if (!choice) continue;
+
+                // Handle reasoning content (Solar Pro)
+                const deltaReasoning = choice.delta?.reasoning;
+                if (deltaReasoning) {
+                  reasoning += deltaReasoning;
+                  if (!inReasoning) {
+                    inReasoning = true;
+                    pgStreamEl.innerHTML = '<span class="t-ts">[' + ts() + ']</span><span style="color:var(--text-dim);">💭 thinking…</span>';
+                    terminal.scrollTop = terminal.scrollHeight;
+                  }
+                }
+
+                // Handle regular content
+                const delta = choice.delta?.content;
+                if (delta) {
+                  if (inReasoning) { inReasoning = false; }
+                  full += delta;
+                  pgStreamEl.innerHTML = '<span class="t-ts">[' + ts() + ']</span><span style="color:var(--accent);">🦀 </span>' + md(full);
+                  terminal.scrollTop = terminal.scrollHeight;
+                }
+              } catch {}
+            }
+          }
+
+          // Preserve reasoning_details for multi-turn
+          const assistantMsg = { role: 'assistant', content: full };
+          if (reasoning) assistantMsg.reasoning_details = [{ type: 'text', text: reasoning }];
+          window.__sandboxHistory.push(assistantMsg);
+        } catch (err) {
+          log('Error: ' + err.message, 'err');
+        }
+        pgStreamEl = null;
+        chatInput.disabled = false; chatSend.disabled = false; chatInput.focus();
+      }
+
+      chatSend.addEventListener('click', sendChat);
+      chatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+      });
+
+      // Launch buttons
+      document.querySelectorAll('.pg-launch').forEach(btn => {
+        btn.addEventListener('click', launchSandbox);
+      });
+    })();
+    </script>
+
+    <!-- Features -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-label">01 / Why vibeclaw</div>
+        <h2>The fastest way to try OpenClaw</h2>
+      </div>
+      <div class="features-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3>Instant Sandbox</h3>
+          <p>Boot a full OpenClaw agent in your browser in seconds. Paste your Anthropic key and start chatting — no install, no Docker, no CLI.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Your Key, Your Browser</h3>
+          <p>API calls go direct from your browser to Anthropic. Your key never touches our servers. Close the tab and it's gone.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+          </div>
+          <h3>Real Container Runtime</h3>
+          <p>Not a mockup — a real Node.js container with a virtual filesystem, 40+ shimmed modules, and npm package support. Powered by almostnode.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+          </div>
+          <h3>Live Gateway Mode</h3>
+          <p>Already running OpenClaw? Connect to your live gateway via WebSocket. See all sessions, agents, files, skills, cron jobs, metrics — everything.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h3>Full Dashboard</h3>
+          <p>3-column gateway dashboard with streaming chat, session management, workspace file browser, skill status, cron jobs, cost tracking, and live logs.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3>WebGPU Local LLM <span style="font-size:0.6rem;color:var(--text-dim);">(coming soon)</span></h3>
+          <p>Run Qwen2.5-Coder 1.5B locally via WebGPU — no API key, no network. A fully self-contained coding agent in ~900MB.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Demos -->
+    <div class="section" id="demos">
+      <div class="section-header">
+        <div class="section-label">02 / Demos</div>
+        <h2>Try it live</h2>
+      </div>
+      <div class="demos-grid">
+
+        <a class="demo-card" href="./examples/openclaw-gateway-demo.html">
+          <h3>🦀 Gateway Dashboard</h3>
+          <p>Full 3-column dashboard — connect to your live OpenClaw gateway and see everything: sessions, chat, files, skills, cron, metrics, logs.</p>
+          <span class="demo-tag">openclaw · gateway · live</span>
+        </a>
+
+        <a class="demo-card" href="./examples/openclaw-demo.html">
+          <h3>🦞 Clawe Squad Manager</h3>
+          <p>Spin up a multi-agent squad — 4 AI agents with workspaces, kanban task board, and coordinated task execution.</p>
+          <span class="demo-tag">clawe · multi-agent · kanban</span>
+        </a>
+
+
+
+        <a class="demo-card" href="./examples/index.html">
+          <h3>⚡ HTTP Server</h3>
+          <p>Run a Node.js HTTP server entirely in the browser. The foundation that makes everything else possible.</p>
+          <span class="demo-tag">almostnode · http · require()</span>
+        </a>
+
+        <a class="demo-card" href="./examples/openclaw-connect-demo.html">
+          <h3>🔌 Connect Demo</h3>
+          <p>Minimal example — connect to an OpenClaw gateway, authenticate, and make your first API call.</p>
+          <span class="demo-tag">websocket · gateway · json-rpc</span>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-label">03 / FAQ</div>
+        <h2>Common questions</h2>
+      </div>
+      <div class="faq-list">
+
+        <details class="faq-item">
+          <summary>What's the difference between Sandbox and Live mode?</summary>
+          <div class="faq-answer"><strong>Sandbox</strong> boots an isolated OpenClaw container right in your browser — just paste your Anthropic API key and start chatting. No server, no install, nothing to configure.<br><br><strong>Live</strong> connects to your actual running OpenClaw gateway via WebSocket. You get the full dashboard — all sessions, agents, files, skills, cron jobs, cost tracking, and logs from your real system.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Is my API key safe?</summary>
+          <div class="faq-answer">Yes. In sandbox mode, your Anthropic API key stays in your browser and goes directly to Anthropic's API. It's never sent to our servers. It's stored in localStorage so you don't have to re-enter it, but you can clear it anytime. In live mode, no API key is needed — just the gateway token from your OpenClaw config.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>How does the sandbox actually work?</summary>
+          <div class="faq-answer">vibeclaw uses <strong>almostnode</strong> — a browser-native Node.js runtime with a virtual filesystem, 40+ shimmed modules, and npm support. It creates a real container, loads the OpenClaw VFS snapshot (67 files), and bootstraps the full runtime. Chat calls go direct to the Anthropic API from your browser.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>What can I do in live gateway mode?</summary>
+          <div class="faq-answer">Everything. The dashboard shows all your sessions with token usage bars, agent identity and workspace files (SOUL.md, MEMORY.md, etc.), active and available skills, cron jobs with status, daily cost sparklines, connected nodes, gateway logs, and full streaming chat. It uses the same 80+ method JSON-RPC API that the OpenClaw control panel uses.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Do I need to install anything?</summary>
+          <div class="faq-answer">No. For sandbox mode, just open the page and paste your Anthropic API key. For live mode, you need a running OpenClaw gateway — paste the gateway token and URL (defaults to <code>localhost:18789</code> via the Vite proxy).</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>What about WebGPU / local models?</summary>
+          <div class="faq-answer">Coming soon. We're integrating <a href="https://github.com/mlc-ai/web-llm">WebLLM</a> to run <strong>Qwen2.5-Coder 1.5B</strong> (4-bit quantized, ~900MB) entirely via WebGPU compute shaders. One download, then fully offline — no API key, no network. The almostnode container runtime is ready, we're wiring up the inference engine.</div>
+        </details>
+
+        <details class="faq-item">
+          <summary>Can I use this in production?</summary>
+          <div class="faq-answer">The sandbox is experimental — great for trying OpenClaw, testing prompts, and quick prototyping. For production workloads, run a real OpenClaw gateway and use live mode to monitor and chat with it from anywhere.</div>
+        </details>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div class="footer-links">
+        <a href="https://openclaw.ai">OpenClaw</a>
+        <a href="https://github.com/nicholasgriffintn/almostnode">almostnode</a>
+        <a href="https://github.com/jasonkneen/vibeclaw">GitHub</a>
+        <a href="./docs/">Docs</a>
+      </div>
+      <span class="footer-byline">🦀 <a href="https://vibeclaw.dev">vibeclaw.dev</a></span>
+      <span class="license">MIT License</span>
+    </footer>
+
+    <!-- ASCII Donut -->
+    <script>
+    (function() {
+      var cvs = document.getElementById('hero-canvas');
+      if (!cvs) return;
+
+      function init() {
+        var par = cvs.parentElement;
+        var W = par.clientWidth;
+        var H = par.clientHeight;
+        if (!W || !H) return;
+        var dpr = window.devicePixelRatio || 1;
+
+        cvs.width = W * dpr;
+        cvs.height = H * dpr;
+
+        var ctx = cvs.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        var CHARS = '.,-~:;=!*#$@';
+        var CL = CHARS.length;
+        var COLS = 40, ROWS = 22;
+        var cw = W / COLS, ch = H / ROWS;
+        var fs = Math.max(11, Math.min(cw * 1.4, ch * 0.95));
+
+        var A = 0.5, B = 0.3;
+        var running = true;
+        var raf = 0;
+
+        function render() {
+          if (!running) return;
+
+          ctx.clearRect(0, 0, W, H);
+
+          var grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.45);
+          grad.addColorStop(0, 'rgba(255, 60, 60, 0.12)');
+          grad.addColorStop(1, 'transparent');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+
+          var out = new Int8Array(COLS * ROWS);
+          var zb = new Float32Array(COLS * ROWS);
+          for (var k = 0; k < out.length; k++) out[k] = -1;
+
+          var sA = Math.sin(A), cA = Math.cos(A);
+          var sB = Math.sin(B), cB = Math.cos(B);
+
+          // Claw opens and closes
+          var clawOpen = 0.5 + 0.3 * Math.sin(A * 1.5);
+          // Scale everything up
+          var S = 0.9;
+
+          function plot(x, y, z, nx, ny, nz) {
+            x *= S; y *= S; z *= S;
+            // Flatten Z for lobster-claw look
+            z *= 0.65; nz *= 0.65;
+            // Rotate around X by A
+            var ry = y * cA - z * sA;
+            var rz = y * sA + z * cA;
+            // Rotate around Y by B
+            var rx = x * cB + rz * sB;
+            rz = -x * sB + rz * cB;
+
+            var D = 1 / (rz + 12);
+            var px = (COLS / 2 + 52 * D * rx) | 0;
+            var py = (ROWS / 2 + 26 * D * ry) | 0;
+
+            // Rotate normals
+            var rny = ny * cA - nz * sA;
+            var rnz = ny * sA + nz * cA;
+            var rnx = nx * cB + rnz * sB;
+            rnz = -nx * sB + rnz * cB;
+
+            // Key light + fill light + ambient
+            var key = rnx * 0.4 + rny * 0.5 + rnz * 0.6;
+            var fill = -rnx * 0.2 + rny * 0.3 - rnz * 0.2;
+            var light = Math.max(key, 0) + Math.max(fill, 0) * 0.5 + 0.25;
+            var lum = (light * CL) | 0;
+            if (lum < 0) lum = 0;
+            if (lum >= CL) lum = CL - 1;
+
+            var idx = px + COLS * py;
+            if (py >= 0 && py < ROWS && px >= 0 && px < COLS && D > zb[idx]) {
+              zb[idx] = D;
+              out[idx] = lum;
+            }
+          }
+
+          // ── PINCERS: two fat curved tapered tubes ──
+          var R = 2.2, maxP = Math.PI * 0.85;
+          for (var side = -1; side <= 1; side += 2) {
+            for (var p = 0; p < maxP; p += 0.012) {
+              var frac = p / maxP;
+              // Fat at base, pointed at tip
+              var tubeR = 1.1 * (1 - 0.78 * frac);
+              // Centerline: arc from base → tip
+              var cx = R * (1 - Math.cos(p));
+              var cy = (R * Math.sin(p) + clawOpen) * side;
+              // Tangent & normal to arc
+              var dtx = R * Math.sin(p);
+              var dty = R * Math.cos(p) * side;
+              var tl = Math.sqrt(dtx * dtx + dty * dty) || 1;
+              dtx /= tl; dty /= tl;
+              var nnx = -dty, nny = dtx;
+              // Cross-section loop
+              for (var t = 0; t < 6.28; t += 0.05) {
+                var ct = Math.cos(t), st = Math.sin(t);
+                plot(
+                  cx + tubeR * ct * nnx,
+                  cy + tubeR * ct * nny,
+                  tubeR * st,
+                  ct * nnx, ct * nny, st
+                );
+              }
+            }
+          }
+
+          // ── JOINT: sphere at base ──
+          var jR = 1.3;
+          for (var p = 0; p < 3.14; p += 0.06) {
+            var sp = Math.sin(p), cp = Math.cos(p);
+            for (var t = 0; t < 6.28; t += 0.06) {
+              var st = Math.sin(t), ct = Math.cos(t);
+              plot(
+                jR * sp * ct - 0.4,
+                jR * sp * st,
+                jR * cp,
+                sp * ct, sp * st, cp
+              );
+            }
+          }
+
+          // ── ARM: tapered cylinder extending backward ──
+          for (var p = 0; p < 3.5; p += 0.05) {
+            var aR = 1.1 - 0.1 * p;
+            var ax = -0.4 - p * 0.8;
+            for (var t = 0; t < 6.28; t += 0.05) {
+              var ct = Math.cos(t), st = Math.sin(t);
+              plot(ax, aR * ct, aR * st, 0, ct, st);
+            }
+          }
+
+          // ── RENDER ASCII ──
+          ctx.font = fs + "px 'IBM Plex Mono',monospace";
+          ctx.textBaseline = 'middle';
+          ctx.textAlign = 'center';
+
+          for (var j = 0; j < ROWS; j++) {
+            for (var i = 0; i < COLS; i++) {
+              var ci = out[i + COLS * j];
+              if (ci >= 0) {
+                var b = ci / (CL - 1);
+                ctx.fillStyle = 'rgba(255,100,100,' + (0.85 + b * 0.15).toFixed(2) + ')';
+                if (b > 0) {
+                  ctx.shadowColor = '#ff6666';
+                  ctx.shadowBlur = 14 + b * 30;
+                } else {
+                  ctx.shadowBlur = 0;
+                }
+                ctx.fillText(CHARS[ci], i * cw + cw / 2, j * ch + ch / 2);
+              }
+            }
+          }
+          ctx.shadowBlur = 0;
+
+          A += 0.007;
+          B += 0.005;
+          raf = requestAnimationFrame(render);
+        }
+
+        var obs = new IntersectionObserver(function(entries) {
+          if (entries[0].isIntersecting) {
+            running = true;
+            render();
+          } else {
+            running = false;
+            cancelAnimationFrame(raf);
+          }
+        });
+        obs.observe(cvs);
+      }
+
+      document.fonts.ready.then(init);
+    })();
+    </script>
+
+  </body>
+</html>
