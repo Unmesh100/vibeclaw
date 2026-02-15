@@ -3,11 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <title>Chat — VibeClaw</title>
+  <title>Chat — vibeclaw | AI Agent Chat Interface</title>
+  <meta name="description" content="Chat with your OpenClaw AI agents in the browser. Session management, live streaming responses, and full message history." />
+  <meta name="keywords" content="openclaw, chat, ai agent, conversation, vibeclaw">
+  <meta name="author" content="vibeclaw">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://vibeclaw.dev/chat.html">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vibeclaw.dev/chat.html">
+  <meta property="og:title" content="Chat — vibeclaw">
+  <meta property="og:description" content="Chat interface for OpenClaw AI agents. Session management and live streaming.">
+  <meta property="og:image" content="https://vibeclaw.dev/og-image.png?v=2">
+  <meta property="og:site_name" content="vibeclaw.dev">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@vibeclaw">
+  <meta name="twitter:creator" content="@jasonkneen">
+  <meta name="twitter:title" content="Chat — vibeclaw">
+  <meta name="twitter:description" content="Chat with OpenClaw AI agents in your browser.">
+  <meta name="twitter:image" content="https://vibeclaw.dev/og-image.png?v=2">
+
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff5c5c' stroke-width='1.5'><path d='M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z'/></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap&font-display=swap" rel="stylesheet">
   <style>
     :root {
       --black: #0a0a0a;
@@ -488,6 +510,8 @@
       border: none;
       border-radius: 10px;
       padding: 14px 20px;
+      min-width: 44px;
+      min-height: 44px;
       cursor: pointer;
       color: #000;
       transition: background 0.15s;
@@ -546,9 +570,9 @@
 </head>
 <body>
 
-  <nav>
+  <nav role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
-      <a href="/" class="nav-logo">vibeclaw</a>
+      <a href="/" class="nav-logo" aria-label="vibeclaw home">vibeclaw</a>
       <ul class="nav-links">
         <li><a href="/forge.html">Forge</a></li>
         <li><a href="/library.html">My Servers</a></li>
@@ -643,8 +667,8 @@
       <div class="chat-input-bar">
         <div class="chat-input-row">
           <textarea id="chat-input" class="chat-input" placeholder="Type a message..." rows="1"></textarea>
-          <button id="chat-send" class="chat-send">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <button id="chat-send" class="chat-send" aria-label="Send message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
       </div>

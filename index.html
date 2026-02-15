@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>vibeclaw — AI coding agents in your browser</title>
-    <meta name="description" content="Run OpenClaw coding agents entirely in the browser. Connect to your live gateway or boot a self-contained sandbox. No server required.">
+    <meta name="description" content="Run a FULL OpenClaw AI agent runtime in your browser in seconds. No installation, no Docker, no CLI. Complete coding agent sandbox with virtual filesystem and free AI models.">
     <meta name="keywords" content="openclaw, ai agent, coding agent, browser, javascript, runtime, webgpu, sandbox, playground">
     <meta name="author" content="vibeclaw">
     <meta name="robots" content="index, follow">
@@ -14,7 +14,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://vibeclaw.dev/">
     <meta property="og:title" content="vibeclaw — AI coding agents in your browser">
-    <meta property="og:description" content="Run OpenClaw coding agents entirely in the browser. Connect to your live gateway or boot a self-contained sandbox.">
+    <meta property="og:description" content="Run a FULL OpenClaw instance entirely in your browser. Boot a complete AI agent runtime in seconds — no install, no Docker, no CLI required.">
     <meta property="og:image" content="https://vibeclaw.dev/og-image.png?v=2">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -22,13 +22,45 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@vibeclaw">
+    <meta name="twitter:creator" content="@jasonkneen">
     <meta name="twitter:title" content="vibeclaw — AI coding agents in your browser">
-    <meta name="twitter:description" content="Run OpenClaw coding agents entirely in the browser. Connect to your live gateway or boot a self-contained sandbox.">
+    <meta name="twitter:description" content="Run a FULL OpenClaw instance in your browser — no install, no server. Boot a complete AI agent runtime in seconds.">
     <meta name="twitter:image" content="https://vibeclaw.dev/og-image.png?v=2">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "vibeclaw",
+      "applicationCategory": "DeveloperApplication",
+      "description": "Run a full OpenClaw AI coding agent entirely in your browser. No installation, no server required. Powered by almostnode.",
+      "url": "https://vibeclaw.dev",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "vibeclaw",
+        "url": "https://vibeclaw.dev"
+      },
+      "featureList": [
+        "Full OpenClaw runtime in the browser",
+        "No installation required",
+        "Direct API connection to Anthropic",
+        "Virtual filesystem support",
+        "Real-time AI coding assistance"
+      ]
+    }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap&font-display=swap" rel="stylesheet">
     <style>
       :root {
         --black: #0c0c0c;
@@ -196,9 +228,12 @@
         border: 1px solid var(--border);
         color: var(--text-dim);
         cursor: pointer;
-        padding: 4px 6px;
+        padding: 8px 12px;
+        min-width: 44px;
+        min-height: 44px;
         display: flex;
         align-items: center;
+        justify-content: center;
         transition: color 0.15s, border-color 0.15s;
       }
       .install-box button:hover {
@@ -217,7 +252,8 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 12px 28px;
+        padding: 14px 28px;
+        min-height: 44px;
         font-family: var(--mono);
         font-size: 0.82rem;
         font-weight: 500;
@@ -939,10 +975,10 @@
   <body>
 
     <!-- Nav -->
-    <nav>
+    <nav role="navigation" aria-label="Main navigation">
       <div class="nav-inner">
-        <a href="./" class="nav-logo">🦀 vibeclaw.dev</a>
-        <ul class="nav-links">
+        <a href="./" class="nav-logo" aria-label="vibeclaw.dev home">🦀 vibeclaw.dev</a>
+        <ul class="nav-links" role="list">
           <li><a href="/forge.html">Forge</a></li>
           <li><a href="/library.html">My Servers</a></li>
           <!-- <li><a href="/chat.html">Chat</a></li> -->
@@ -989,15 +1025,17 @@
       })();
     </script>
 
+    <!-- Main Content -->
+    <main>
     <!-- Hero -->
-    <section class="hero">
+    <section class="hero" aria-label="Hero section">
       <div class="hero-content">
       <div class="hero-label">Open Source · Powered by almostnode</div>
-      <h1>Try <span style="color:var(--accent);">OpenClaw</span><br>in your browser in less than <span id="hero-time" style="display:inline-block;transition:opacity 0.4s ease, transform 0.4s ease;">3s</span></h1>
-      <p class="subtitle">No server required. Runs locally in your browser.</p>
+      <h1>Run a <span style="color:var(--accent);">full OpenClaw instance</span><br>in your browser in <span id="hero-time" style="display:inline-block;transition:opacity 0.4s ease, transform 0.4s ease;">seconds</span></h1>
+      <p class="subtitle">Complete AI agent runtime with virtual filesystem, free models, and live chat. No installation. No Docker. Just open and go.</p>
 
       <div class="cta-row">
-        <button class="btn btn-primary pg-launch" data-action="sandbox" style="background:var(--accent);color:#000;border:1px solid var(--accent);display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Boot Your Server Now</button>
+        <button class="btn btn-primary pg-launch" data-action="sandbox" style="background:var(--accent);color:#000;border:1px solid var(--accent);display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;" aria-label="Boot your OpenClaw server now"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg> Boot Your Server Now</button>
         <!-- Build/Demos buttons moved below playground -->
       </div>
 
@@ -1127,13 +1165,13 @@ entirely in a browser sandbox.
               <a id="pg-connect-link" href="#" style="display:none;font-family:var(--mono);font-size:0.65rem;color:var(--accent);text-decoration:none;font-weight:700;">🔴 Connect →</a>
             </div>
             <div class="pg-terminal" id="pg-terminal" style="display:flex;align-items:center;justify-content:center;">
-              <button class="pg-launch" data-action="sandbox" style="padding:16px 40px;font-family:var(--mono);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;background:var(--accent);color:#000;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:background 0.15s,box-shadow 0.15s;" onmouseover="this.style.background='#ff7070';this.style.boxShadow='0 0 20px rgba(255,92,92,0.3)'" onmouseout="this.style.background='var(--accent)';this.style.boxShadow='none'"><svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><polygon points="5 3 19 12 5 21 5 3"/></svg> Boot Your Gateway</button>
+              <button class="pg-launch" data-action="sandbox" style="padding:16px 40px;font-family:var(--mono);font-size:1.1rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;background:var(--accent);color:#000;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;transition:background 0.15s,box-shadow 0.15s;" aria-label="Boot OpenClaw gateway" onmouseover="this.style.background='#ff7070';this.style.boxShadow='0 0 20px rgba(255,92,92,0.3)'" onmouseout="this.style.background='var(--accent)';this.style.boxShadow='none'"><svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg> Boot Your Gateway</button>
             </div>
 
             <div id="pg-chat-bar" style="display:none;border-top:1px solid var(--border);background:var(--surface);">
               <div style="display:flex;gap:0;">
                 <input id="pg-chat-input" type="text" placeholder="Message the agent…" disabled style="flex:1;padding:16px 18px;background:transparent;border:none;color:var(--text-bright);font-family:var(--mono);font-size:0.95rem;outline:none;" />
-                <button id="pg-chat-send" disabled style="padding:16px 24px;font-family:var(--mono);font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--accent);color:#000;border:none;cursor:pointer;">Send</button>
+                <button id="pg-chat-send" disabled style="padding:16px 24px;font-family:var(--mono);font-size:0.9rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--accent);color:#000;border:none;cursor:pointer;" aria-label="Send message">Send</button>
               </div>
             </div>
             <div id="pg-forge-cta" style="display:none;border-top:1px solid var(--border);background:var(--accent-bg);padding:12px 18px;text-align:center;">
@@ -1757,8 +1795,8 @@ entirely in a browser sandbox.
           <div class="feature-icon">
             <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           </div>
-          <h3>Instant Sandbox</h3>
-          <p>Boot a full OpenClaw agent in your browser in seconds. Paste your Anthropic key and start chatting — no install, no Docker, no CLI.</p>
+          <h3>Complete Runtime in Seconds</h3>
+          <p>Boot a FULL OpenClaw instance in your browser — complete with virtual filesystem, 40+ Node.js modules, and npm support. Just paste your API key and start coding. Zero install.</p>
         </div>
 
         <div class="feature-card">
@@ -1773,8 +1811,8 @@ entirely in a browser sandbox.
           <div class="feature-icon">
             <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
           </div>
-          <h3>Real Container Runtime</h3>
-          <p>Not a mockup — a real Node.js container with a virtual filesystem, 40+ shimmed modules, and npm package support. Powered by almostnode.</p>
+          <h3>Real Node.js Container</h3>
+          <p>This isn't a demo — it's a real Node.js runtime with a virtual filesystem, 40+ shimmed modules, require(), npm packages, and full OpenClaw agent workspace. Powered by almostnode.</p>
         </div>
 
         <div class="feature-card">
@@ -2039,8 +2077,10 @@ entirely in a browser sandbox.
       </div>
     </div>
 
+    </main>
+
     <!-- Footer -->
-    <footer>
+    <footer role="contentinfo">
       <div class="footer-links">
         <a href="https://openclaw.ai">OpenClaw</a>
         <a href="https://github.com/macaly/almostnode">almostnode</a>
