@@ -1276,7 +1276,7 @@ entirely in a browser sandbox.
             if (m === 'connect') {
               ch.postMessage({ type: 'res', id, ok: true, payload: {
                 server: { host: 'vibeclaw-sandbox', version: '1.0.0' },
-                mainSessionKey: 'sandbox-session', protocolVersion: 3
+                mainSessionKey: 'agent:main:main', protocolVersion: 3
               }});
             } else if (m === 'status') {
               ch.postMessage({ type: 'res', id, ok: true, payload: {
@@ -1291,7 +1291,7 @@ entirely in a browser sandbox.
             } else if (m === 'sessions.list') {
               const h = window.__sandboxHistory || [];
               ch.postMessage({ type: 'res', id, ok: true, payload: { sessions: [
-                { key: 'sandbox-session', displayName: 'Sandbox Session', label: 'Sandbox', model: 'solar-pro-3', updatedAt: Date.now(), totalTokens: h.length * 100, contextTokens: 4096 }
+                { key: 'agent:main:main', displayName: '🦀 Sandbox', label: 'Sandbox', model: 'solar-pro-3', updatedAt: Date.now(), totalTokens: h.length * 100, contextTokens: 4096 }
               ]}});
             } else if (m === 'skills.status' || m === 'skills.list') {
               ch.postMessage({ type: 'res', id, ok: true, payload: { skills: [

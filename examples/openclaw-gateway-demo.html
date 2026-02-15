@@ -476,6 +476,9 @@
                 appendMsg(el.chatMessages, 'system', '', '🦀 Connected to sandbox');
                 if (hello?.mainSessionKey) activeSession = hello.mainSessionKey;
                 await Promise.all([fetchStatus(), fetchAgentIdentity(), fetchSessions(), fetchAgentFiles(), fetchSkills(), fetchCron(), fetchUsageCost(), fetchLogs(), fetchPresence()]);
+                await loadSessionChat(activeSession);
+                el.chatInput.disabled = false;
+                el.chatSend.disabled = false;
               } catch (err) {
                 setState('offline');
                 appendMsg(el.chatMessages, 'system', '', 'Connection failed: ' + err.message);
