@@ -69,10 +69,6 @@
       margin: 0 auto;
       gap: 0;
       min-height: calc(100vh - 60px);
-      transition: grid-template-columns 0.3s ease;
-    }
-    .forge-layout.with-preview {
-      grid-template-columns: 320px 1fr 340px;
     }
 
     /* ── Main configurator ── */
@@ -747,15 +743,18 @@
 
     /* ── Left Preview Chat Panel ── */
     .forge-preview-chat {
-      position: sticky;
+      position: fixed;
       top: 60px;
-      height: calc(100vh - 60px);
+      left: 0;
+      bottom: 0;
+      width: 340px;
       display: none;
       flex-direction: column;
       border-right: 1px solid var(--border);
       background: var(--surface);
       overflow: hidden;
-      align-self: start;
+      z-index: 200;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.4);
     }
     .forge-preview-chat.active {
       display: flex;
@@ -935,38 +934,14 @@
     .preview-loading span:nth-child(3) { animation-delay: 0.4s; }
 
     /* ── Responsive ── */
-    @media (max-width: 1200px) {
-      .forge-layout.with-preview {
-        grid-template-columns: 280px 1fr 300px;
-      }
-      .forge-preview-chat.active {
-        width: 280px;
-      }
-      .forge-preview-chat {
-        height: calc(100vh - 60px);
-      }
-    }
     @media (max-width: 900px) {
       .forge-layout {
         grid-template-columns: 1fr;
       }
-      .forge-layout.with-preview {
-        grid-template-columns: 1fr;
-      }
       .forge-preview-chat {
-        position: fixed;
-        top: 60px;
-        left: 0;
+        width: 100% !important;
         right: 0;
-        bottom: 0;
-        width: 100% !important;
-        height: calc(100vh - 60px);
-        z-index: 200;
         border-right: none;
-      }
-      .forge-preview-chat.active {
-        width: 100% !important;
-        opacity: 1;
       }
       .forge-sidebar {
         position: relative;
@@ -1003,33 +978,33 @@
     </div>
   </nav>
 
-  <!-- Layout -->
-  <div class="forge-layout" id="forge-layout">
-    <!-- Left Preview Chat Panel -->
-    <div class="forge-preview-chat" id="preview-chat">
-      <div class="preview-header">
-        <div class="preview-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          <span id="preview-title-text">Preview</span>
-        </div>
-        <button class="preview-close" id="preview-close">Close</button>
+  <!-- Preview Chat Panel (fixed overlay, outside grid) -->
+  <div class="forge-preview-chat" id="preview-chat">
+    <div class="preview-header">
+      <div class="preview-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span id="preview-title-text">Preview</span>
       </div>
-      <div class="preview-messages" id="preview-messages">
-        <div class="preview-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-          <p>Type a message to test your agent</p>
-        </div>
-      </div>
-      <div class="preview-input-bar">
-        <div class="preview-input-row">
-          <textarea id="preview-input" class="preview-input" placeholder="Message..." rows="1"></textarea>
-          <button id="preview-send" class="preview-send">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
-        </div>
+      <button class="preview-close" id="preview-close">Close</button>
+    </div>
+    <div class="preview-messages" id="preview-messages">
+      <div class="preview-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <p>Type a message to test your agent</p>
       </div>
     </div>
+    <div class="preview-input-bar">
+      <div class="preview-input-row">
+        <textarea id="preview-input" class="preview-input" placeholder="Message..." rows="1"></textarea>
+        <button id="preview-send" class="preview-send">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
+  <!-- Layout -->
+  <div class="forge-layout" id="forge-layout">
     <!-- Main configurator -->
     <div class="forge-main">
       <h1 class="forge-title">Build your server</h1>
@@ -1862,13 +1837,11 @@ Update this file as you learn about the workspace and user preferences.</textare
       
       if (isOpen) {
         panel.classList.remove('active');
-        layout.classList.remove('with-preview');
         btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px;display:inline;vertical-align:-1px;margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>Preview';
       } else {
         const spec = buildSpec();
         $('preview-title-text').textContent = `${spec.emoji || '🤖'} ${spec.name || 'Preview'}`;
         panel.classList.add('active');
-        layout.classList.add('with-preview');
         btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;display:inline;vertical-align:-1px;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Close Preview';
         previewMessages = [];
         renderPreviewMessages();
@@ -1878,7 +1851,6 @@ Update this file as you learn about the workspace and user preferences.</textare
 
     $('preview-close').addEventListener('click', () => {
       $('preview-chat').classList.remove('active');
-      $('forge-layout').classList.remove('with-preview');
     });
 
     $('preview-send').addEventListener('click', sendPreviewMessage);
