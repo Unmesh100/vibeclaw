@@ -85,7 +85,7 @@ export function buildSpec(state: ForgeState): ServerSpec {
  * Generate a valid OpenClaw gateway config (JSON5-compatible JSON)
  */
 export function generateOpenClawConfig(spec: ServerSpec): string {
-  const model = spec.runtime?.model?.model || 'deepseek/deepseek-chat-v3-0324:free';
+  const model = spec.runtime?.model?.model || 'upstage/solar-pro-3:free';
   const config = {
     agents: {
       defaults: {

@@ -1215,12 +1215,12 @@ Update this file as you learn about the workspace and user preferences.</textare
         </div>
         <p class="step-desc">Choose the LLM that powers your server.</p>
         <div class="model-grid" id="model-grid">
-          <div class="model-card selected" data-model="deepseek/deepseek-chat-v3-0324:free">
+          <div class="model-card selected" data-model="upstage/solar-pro-3:free">
             <div class="model-header">
               <svg class="model-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M4.22 4.22l2.83 2.83m9.9 9.9l2.83 2.83M1 12h4m14 0h4M4.22 19.78l2.83-2.83m9.9-9.9l2.83-2.83"/></svg>
-              <div class="model-name">DeepSeek V3</div>
+              <div class="model-name">Solar Pro 3</div>
             </div>
-            <div class="model-provider">DeepSeek</div>
+            <div class="model-provider">Upstage</div>
             <span class="model-badge">FREE</span>
           </div>
           <div class="model-card" data-model="qwen/qwen3-8b:free">
@@ -1315,7 +1315,7 @@ Update this file as you learn about the workspace and user preferences.</textare
 
       <div class="sidebar-section">
         <div class="sidebar-label">Model</div>
-        <div class="sidebar-value" id="sidebar-model">DeepSeek V3</div>
+        <div class="sidebar-value" id="sidebar-model">Solar Pro 3</div>
       </div>
 
       <div class="sidebar-actions">
@@ -1447,7 +1447,7 @@ Update this file as you learn about the workspace and user preferences.</textare
         'TOOLS.md': '# Tools\n\nNote down tool-specific config: camera names, SSH hosts, API endpoints, etc.'
       },
       activeFile: 'AGENTS.md',
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'upstage/solar-pro-3:free',
     };
 
     let allFlavours = [];
@@ -1680,7 +1680,7 @@ Update this file as you learn about the workspace and user preferences.</textare
         state.runtime = 'single';
         state.agents = [{ emoji: '🦀', name: 'Claw', desc: 'General-purpose coding assistant' }];
         state.skills = new Set(['chat', 'filesystem', 'execute']);
-        state.model = 'deepseek/deepseek-chat-v3-0324:free';
+        state.model = 'upstage/solar-pro-3:free';
         $('system-prompt').value = 'You are 🦀 Claw, a helpful coding assistant. Be concise, direct, and pragmatic.';
         state.systemPrompt = $('system-prompt').value;
       } else {

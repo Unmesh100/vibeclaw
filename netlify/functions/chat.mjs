@@ -4,7 +4,6 @@ const FREE_MODELS = new Set([
   'google/gemma-3-4b-it:free',
   'qwen/qwen3-8b:free',
   'deepseek/deepseek-r1-0528:free',
-  'deepseek/deepseek-chat-v3-0324:free',
   'microsoft/phi-4-reasoning:free',
   'mistralai/mistral-small-3.1-24b-instruct:free',
 ]);
