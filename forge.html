@@ -747,7 +747,7 @@
       top: 60px;
       left: 0;
       bottom: 0;
-      width: 340px;
+      width: 380px;
       display: none;
       flex-direction: column;
       border-right: 1px solid var(--border);
@@ -755,41 +755,91 @@
       overflow: hidden;
       z-index: 200;
       box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+      transition: transform 0.25s ease, opacity 0.25s ease;
     }
     .forge-preview-chat.active {
       display: flex;
     }
+    /* Collapsed = minimised to a tab on the left edge */
+    .forge-preview-chat.collapsed {
+      transform: translateX(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    /* Retrieve tab — visible when collapsed */
+    .preview-retrieve-tab {
+      position: fixed;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 201;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 8px;
+      cursor: pointer;
+      color: var(--text-dim);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.65rem;
+      font-family: var(--mono);
+      writing-mode: vertical-lr;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      transition: all 0.15s;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+    }
+    .preview-retrieve-tab:hover { border-color: var(--accent); color: var(--accent); }
+    .preview-retrieve-tab.visible { display: flex; }
     .preview-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--black);
       flex-shrink: 0;
+      gap: 6px;
     }
     .preview-title {
       font-family: var(--mono);
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.06em;
       color: var(--text-dim);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
-    .preview-close {
+    .preview-header-actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .preview-hdr-btn {
       background: none;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 4px 8px;
+      border-radius: 5px;
+      padding: 3px 7px;
       cursor: pointer;
       color: var(--text-dim);
-      font-family: var(--mono);
-      font-size: 0.65rem;
+      font-size: 0.7rem;
       transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .preview-close:hover { border-color: var(--accent); color: var(--accent); }
+    .preview-hdr-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .preview-hdr-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+    .preview-hdr-btn svg { width: 11px; height: 11px; }
     .preview-messages {
       flex: 1;
       overflow-y: auto;
@@ -856,6 +906,72 @@
       border-radius: 3px;
       padding: 1px 4px;
       color: var(--accent);
+    }
+    /* Code blocks in preview */
+    .preview-msg-bubble pre {
+      background: var(--black);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin: 6px 0;
+      overflow-x: auto;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      position: relative;
+    }
+    .preview-msg-bubble pre code {
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      color: var(--text) !important;
+      font-size: inherit;
+    }
+    .preview-code-lang {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .preview-code-copy {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 0.55rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .preview-msg-bubble pre:hover .preview-code-copy { opacity: 1; }
+    .preview-code-copy:hover { border-color: var(--accent); color: var(--accent); }
+    /* Lists in preview */
+    .preview-msg-bubble ul, .preview-msg-bubble ol {
+      margin: 4px 0;
+      padding-left: 18px;
+    }
+    .preview-msg-bubble li { margin: 2px 0; }
+    /* Headers in preview */
+    .preview-msg-bubble h1, .preview-msg-bubble h2, .preview-msg-bubble h3 {
+      color: var(--text-bright);
+      margin: 8px 0 4px;
+      font-size: 0.85rem;
+    }
+    .preview-msg-bubble h1 { font-size: 0.95rem; }
+    .preview-msg-bubble blockquote {
+      border-left: 2px solid var(--accent);
+      padding-left: 10px;
+      margin: 6px 0;
+      color: var(--text-dim);
+      font-style: italic;
     }
     .preview-empty {
       flex: 1;
@@ -978,14 +1094,31 @@
     </div>
   </nav>
 
+  <!-- Retrieve tab (visible when preview is collapsed) -->
+  <div class="preview-retrieve-tab" id="preview-retrieve" title="Open preview chat">
+    💬 Preview
+  </div>
+
   <!-- Preview Chat Panel (fixed overlay, outside grid) -->
   <div class="forge-preview-chat" id="preview-chat">
     <div class="preview-header">
       <div class="preview-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        <span id="preview-title-text">Preview</span>
+        <span id="preview-title-text">💬 Preview</span>
       </div>
-      <button class="preview-close" id="preview-close">Close</button>
+      <div class="preview-header-actions">
+        <button class="preview-hdr-btn" id="preview-pin" title="Pin open">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 11V4a1 1 0 011-1h4a1 1 0 011 1v7"/><path d="M5 11h14l-1.5 6H6.5z"/></svg>
+        </button>
+        <button class="preview-hdr-btn" id="preview-collapse" title="Collapse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        </button>
+        <button class="preview-hdr-btn" id="preview-clear" title="Clear chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+        <button class="preview-hdr-btn" id="preview-close" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
     <div class="preview-messages" id="preview-messages">
       <div class="preview-empty">
@@ -1737,6 +1870,42 @@ Update this file as you learn about the workspace and user preferences.</textare
     let previewMessages = [];
     let previewGenerating = false;
     let previewAbortController = null;
+    let previewPinned = false;
+
+    // ── Markdown renderer for preview ──
+    function renderMd(text) {
+      let h = escHtml(text);
+      // Code blocks with language tag + copy button
+      h = h.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        const langTag = lang ? `<span class="preview-code-lang">${lang}</span>` : '';
+        return `<pre>${langTag}<code>${code.trim()}</code></pre>`;
+      });
+      // Inline code
+      h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+      // Headers
+      h = h.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      h = h.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      h = h.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+      // Bold + italic
+      h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      h = h.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text-bright);">$1</strong>');
+      h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      // Blockquotes
+      h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+      // Unordered lists
+      h = h.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+      h = h.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+      // Ordered lists
+      h = h.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+      // Links
+      h = h.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent);">$1</a>');
+      // Line breaks (but not inside blocks)
+      h = h.replace(/\n/g, '<br>');
+      // Clean up excess breaks around block elements
+      h = h.replace(/<br>\s*(<\/?(?:pre|ul|ol|li|h[1-3]|blockquote))/g, '$1');
+      h = h.replace(/(<\/(?:pre|ul|ol|li|h[1-3]|blockquote)>)\s*<br>/g, '$1');
+      return h;
+    }
 
     function renderPreviewMessages() {
       const container = $('preview-messages');
@@ -1755,9 +1924,10 @@ Update this file as you learn about the workspace and user preferences.</textare
         const isUser = msg.role === 'user';
         const cls = isUser ? 'user' : 'assistant';
         const emoji = isUser ? '👤' : (state.emoji || '🤖');
+        const rendered = isUser ? escHtml(msg.content) : renderMd(msg.content);
         html += `<div class="preview-msg ${cls}">
           <div class="preview-msg-avatar">${emoji}</div>
-          <div class="preview-msg-bubble">${escHtml(msg.content).replace(/`([^`]+)`/g, '<code>$1</code>')}</div>
+          <div class="preview-msg-bubble">${rendered}</div>
         </div>`;
       }
 
@@ -1768,7 +1938,6 @@ Update this file as you learn about the workspace and user preferences.</textare
         </div>`;
       }
 
-      // Replace only message elements, keep empty state
       container.querySelectorAll('.preview-msg').forEach(el => el.remove());
       container.insertAdjacentHTML('beforeend', html);
       container.scrollTop = container.scrollHeight;
@@ -1829,29 +1998,64 @@ Update this file as you learn about the workspace and user preferences.</textare
       }
     }
 
-    $('preview-btn').addEventListener('click', () => {
-      const layout = $('forge-layout');
+    function openPreview() {
       const panel = $('preview-chat');
-      const btn = $('preview-btn');
-      const isOpen = panel.classList.contains('active');
-      
+      const spec = buildSpec();
+      $('preview-title-text').textContent = `${spec.emoji || '🤖'} ${spec.name || 'Preview'}`;
+      panel.classList.add('active');
+      panel.classList.remove('collapsed');
+      $('preview-retrieve').classList.remove('visible');
+      if (previewMessages.length === 0) renderPreviewMessages();
+      setTimeout(() => $('preview-input').focus(), 150);
+    }
+
+    function closePreview() {
+      $('preview-chat').classList.remove('active', 'collapsed');
+      $('preview-retrieve').classList.remove('visible');
+      previewPinned = false;
+      $('preview-pin').classList.remove('active');
+    }
+
+    function collapsePreview() {
+      $('preview-chat').classList.add('collapsed');
+      $('preview-retrieve').classList.add('visible');
+    }
+
+    $('preview-btn').addEventListener('click', () => {
+      const panel = $('preview-chat');
+      const isOpen = panel.classList.contains('active') && !panel.classList.contains('collapsed');
       if (isOpen) {
-        panel.classList.remove('active');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:12px;height:12px;display:inline;vertical-align:-1px;margin-right:6px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>Preview';
+        closePreview();
       } else {
-        const spec = buildSpec();
-        $('preview-title-text').textContent = `${spec.emoji || '🤖'} ${spec.name || 'Preview'}`;
-        panel.classList.add('active');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;display:inline;vertical-align:-1px;margin-right:6px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Close Preview';
-        previewMessages = [];
-        renderPreviewMessages();
-        setTimeout(() => $('preview-input').focus(), 350);
+        openPreview();
       }
     });
 
-    $('preview-close').addEventListener('click', () => {
-      $('preview-chat').classList.remove('active');
+    // Pin — keeps panel open when clicking outside
+    $('preview-pin').addEventListener('click', () => {
+      previewPinned = !previewPinned;
+      $('preview-pin').classList.toggle('active', previewPinned);
     });
+
+    // Collapse — slide off-screen, show retrieve tab
+    $('preview-collapse').addEventListener('click', collapsePreview);
+
+    // Retrieve — bring back from collapsed
+    $('preview-retrieve').addEventListener('click', () => {
+      const panel = $('preview-chat');
+      panel.classList.remove('collapsed');
+      $('preview-retrieve').classList.remove('visible');
+      setTimeout(() => $('preview-input').focus(), 150);
+    });
+
+    // Clear chat
+    $('preview-clear').addEventListener('click', () => {
+      previewMessages = [];
+      renderPreviewMessages();
+    });
+
+    // Close
+    $('preview-close').addEventListener('click', closePreview);
 
     $('preview-send').addEventListener('click', sendPreviewMessage);
 
