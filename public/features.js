@@ -91,9 +91,10 @@ const VibeclawFeatures = (() => {
       return freeModels;
     },
 
-    // Open Pro page / checkout
+    // Pro checkout — coming soon
     openCheckout() {
-      window.location.href = '/pro';
+      // TODO: wire up when payment provider is ready
+      alert('Pro is coming soon! Join the waitlist on Discord.');
     },
 
     // Render upgrade button (only in preview mode)
