@@ -119,12 +119,12 @@ const VibeclawFeatures = (() => {
       function update() {
         if (_isPro) {
           container.innerHTML = `
-            <span class="pro-badge" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,rgba(255,92,92,0.15),rgba(255,150,50,0.15));border:1px solid rgba(255,92,92,0.3);font-family:var(--mono,'IBM Plex Mono',monospace);font-size:0.65rem;color:var(--accent,#ff5c5c);letter-spacing:0.05em;text-transform:uppercase;">
+            <span class="pro-badge" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,rgba(255,92,92,0.15),rgba(255,150,50,0.15));border:1px solid rgba(255,92,92,0.3);font-family:var(--mono,'Fragment Mono',monospace);font-size:0.65rem;color:var(--accent,#ff5c5c);letter-spacing:0.05em;text-transform:uppercase;">
               ⚡ Pro
             </span>`;
         } else {
           container.innerHTML = `
-            <button class="upgrade-btn" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:6px;background:linear-gradient(135deg,#ff5c5c,#ff8844);border:none;font-family:var(--mono,'IBM Plex Mono',monospace);font-size:0.65rem;color:#000;cursor:pointer;font-weight:600;letter-spacing:0.03em;transition:all 0.15s;text-transform:uppercase;">
+            <button class="upgrade-btn" style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:6px;background:linear-gradient(135deg,#ff5c5c,#ff8844);border:none;font-family:var(--mono,'Fragment Mono',monospace);font-size:0.65rem;color:#000;cursor:pointer;font-weight:600;letter-spacing:0.03em;transition:all 0.15s;text-transform:uppercase;">
               ⚡ Upgrade to Pro
             </button>`;
           const btn = container.querySelector('.upgrade-btn');

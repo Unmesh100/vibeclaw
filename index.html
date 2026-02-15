@@ -28,7 +28,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root {
         --black: #0c0c0c;
@@ -43,8 +43,9 @@
         --accent-dim: #ff4040;
         --accent-bg: rgba(255, 92, 92, 0.06);
         --accent-border: rgba(255, 92, 92, 0.15);
-        --mono: 'IBM Plex Mono', 'Menlo', monospace;
-        --sans: 'Instrument Sans', system-ui, sans-serif;
+        --mono: 'Fragment Mono', 'JetBrains Mono', 'Menlo', monospace;
+        --sans: 'DM Sans', system-ui, sans-serif;
+        --code: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
       }
 
       * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -2088,7 +2089,7 @@ entirely in a browser sandbox.
           }
 
           // ── RENDER ASCII ──
-          ctx.font = fs + "px 'IBM Plex Mono',monospace";
+          ctx.font = fs + "px 'Fragment Mono','JetBrains Mono',monospace";
           ctx.textBaseline = 'middle';
           ctx.textAlign = 'center';
 

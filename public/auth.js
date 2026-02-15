@@ -137,8 +137,8 @@ const VibeclawAuth = {
         container.innerHTML = `
           <div class="auth-user" style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Signed in as ${info.email}">
             <span class="auth-avatar" style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:rgba(255,92,92,0.06);border:1px solid rgba(255,92,92,0.15);overflow:hidden;">${avatarHtml}</span>
-            <span class="auth-name" style="font-family:var(--mono,'IBM Plex Mono',monospace);font-size:0.7rem;color:var(--text-bright,#e0e0e0);">${esc(info.name)}</span>
-            <button class="auth-logout-btn" style="background:none;border:1px solid var(--border,#2a2a2a);border-radius:4px;padding:2px 8px;font-family:var(--mono,'IBM Plex Mono',monospace);font-size:0.6rem;color:var(--text-dim,#666);cursor:pointer;">Sign out</button>
+            <span class="auth-name" style="font-family:var(--mono,'Fragment Mono',monospace);font-size:0.7rem;color:var(--text-bright,#e0e0e0);">${esc(info.name)}</span>
+            <button class="auth-logout-btn" style="background:none;border:1px solid var(--border,#2a2a2a);border-radius:4px;padding:2px 8px;font-family:var(--mono,'Fragment Mono',monospace);font-size:0.6rem;color:var(--text-dim,#666);cursor:pointer;">Sign out</button>
           </div>`;
         container.querySelector('.auth-logout-btn').addEventListener('click', e => {
           e.stopPropagation();
@@ -146,7 +146,7 @@ const VibeclawAuth = {
         });
       } else {
         container.innerHTML = `
-          <button class="auth-login-btn" style="background:none;border:1px solid var(--border,#2a2a2a);border-radius:6px;padding:4px 12px;font-family:var(--mono,'IBM Plex Mono',monospace);font-size:0.7rem;color:var(--text-dim,#999);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.15s;">
+          <button class="auth-login-btn" style="background:none;border:1px solid var(--border,#2a2a2a);border-radius:6px;padding:4px 12px;font-family:var(--mono,'Fragment Mono',monospace);font-size:0.7rem;color:var(--text-dim,#999);cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.15s;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:12px;height:12px;"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0113 0"/></svg>
             Sign in
           </button>`;
