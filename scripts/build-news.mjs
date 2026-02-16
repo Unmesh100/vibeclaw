@@ -15,18 +15,55 @@ function parseFrontmatter(raw) {
 
   const lines = match[1].split('\n');
   const meta = {};
-  for (const line of lines) {
+  let currentKey = null;
+  let currentArray = null;
+  let currentObj = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Handle array items with objects
+    if (line.match(/^\s+- url:/)) {
+      const urlMatch = line.match(/url:\s*"([^"]+)"/);
+      if (urlMatch && currentArray) {
+        currentObj = { url: urlMatch[1] };
+      }
+      continue;
+    }
+    
+    if (line.match(/^\s+label:/)) {
+      const labelMatch = line.match(/label:\s*"([^"]+)"/);
+      if (labelMatch && currentObj) {
+        currentObj.label = labelMatch[1];
+        currentArray.push(currentObj);
+        currentObj = null;
+      }
+      continue;
+    }
+
     const idx = line.indexOf(':');
     if (idx === -1) continue;
+    
     const key = line.slice(0, idx).trim();
     let val = line.slice(idx + 1).trim();
-    // Parse arrays
+
+    // Handle array start
+    if (!val || val === '') {
+      currentKey = key;
+      currentArray = [];
+      meta[key] = currentArray;
+      continue;
+    }
+
+    // Parse inline arrays
     if (val.startsWith('[') && val.endsWith(']')) {
       val = val.slice(1, -1).split(',').map(s => s.trim().replace(/^["']|["']$/g, ''));
     }
     // Strip quotes
     if (typeof val === 'string') val = val.replace(/^["']|["']$/g, '');
     meta[key] = val;
+    currentKey = null;
+    currentArray = null;
   }
   return { meta, body: match[2].trim() };
 }
@@ -95,6 +132,7 @@ try {
       summary: meta.summary || '',
       source: meta.source || '',
       sourceLabel: meta.sourceLabel || '',
+      sources: Array.isArray(meta.sources) ? meta.sources : [],
       html: md2html(body),
     };
   });
