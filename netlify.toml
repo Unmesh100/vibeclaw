@@ -23,6 +23,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/articles"
+  to = "/.netlify/functions/articles"
+  status = 200
+
+[[redirects]]
   from = "/news"
   to = "/news.html"
   status = 200

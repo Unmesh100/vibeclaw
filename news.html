@@ -51,102 +51,672 @@
     .nav-links a.active { color: var(--accent); }
 
     /* Page container */
-    .page { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; }
+    .page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 60px; }
 
     /* Page header */
     .page-header { margin-bottom: 24px; display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
     .page-header h1 { font-family: var(--sans); font-size: 1.8rem; font-weight: 800; color: var(--text-bright); }
     .article-count { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); }
 
+    /* Search bar */
+    .search-container { margin-bottom: 20px; }
+    .search-input { 
+      width: 100%; 
+      max-width: 500px; 
+      padding: 12px 16px; 
+      font-family: var(--mono); 
+      font-size: 0.85rem; 
+      background: var(--surface); 
+      border: 1px solid var(--border); 
+      border-radius: 8px; 
+      color: var(--text-bright); 
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { 
+      outline: none; 
+      border-color: var(--accent); 
+    }
+    .search-input::placeholder { color: var(--text-dim); }
+
     /* Tags filter */
-    .tags-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 28px; }
-    .tag-btn { font-family: var(--mono); font-size: 0.6rem; padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.04em; }
+    .tags-bar { 
+      display: flex; 
+      gap: 6px; 
+      flex-wrap: wrap; 
+      margin-bottom: 28px; 
+      position: sticky; 
+      top: 65px; 
+      background: var(--black); 
+      padding: 12px 0; 
+      z-index: 90;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .tags-bar.stuck { border-bottom-color: var(--border); }
+    .tag-btn { 
+      font-family: var(--mono); 
+      font-size: 0.6rem; 
+      padding: 4px 10px; 
+      border-radius: 20px; 
+      border: 1px solid var(--border); 
+      background: transparent; 
+      color: var(--text-dim); 
+      cursor: pointer; 
+      transition: all 0.15s; 
+      text-transform: uppercase; 
+      letter-spacing: 0.04em; 
+    }
     .tag-btn:hover { border-color: var(--accent); color: var(--accent); }
     .tag-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
-    /* ── HERO + SIDEBAR ── */
-    .hero-section { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 32px; }
-    @media (min-width: 768px) { .hero-section { grid-template-columns: 3fr 2fr; } }
+    /* Hero Section with cinematic overlay */
+    .hero-section { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 32px; }
+    @media (min-width: 768px) { .hero-section { grid-template-columns: 2fr 1fr; } }
 
-    /* Hero card */
-    .hero-card { border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; cursor: pointer; transition: border-color 0.2s; position: relative; }
-    .hero-card:hover { border-color: var(--accent); }
-    .hero-card.expanded { cursor: default; }
-    .hero-img { width: 100%; height: 320px; object-fit: cover; }
-    .hero-content { padding: 24px; }
-    .hero-label { font-family: var(--mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 10px; }
-    .hero-title { font-family: var(--sans); font-size: 1.6rem; font-weight: 800; color: var(--text-bright); line-height: 1.25; margin-bottom: 10px; }
-    .hero-summary { font-family: var(--mono); font-size: 0.82rem; color: var(--text); line-height: 1.6; margin-bottom: 12px; }
+    .hero-card { 
+      position: relative; 
+      border: 1px solid var(--border); 
+      border-radius: 12px; 
+      background: var(--surface); 
+      overflow: hidden; 
+      cursor: pointer; 
+      transition: all 0.3s ease;
+      min-height: 450px;
+    }
+    .hero-card:hover { 
+      border-color: var(--accent); 
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(255,92,92,0.15);
+    }
+    .hero-card.expanded { cursor: default; transform: none; }
+    
+    .hero-img-container { 
+      position: relative; 
+      width: 100%; 
+      height: 450px; 
+      overflow: hidden;
+    }
+    .hero-img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+      transition: transform 0.5s ease;
+    }
+    .hero-card:hover .hero-img { transform: scale(1.05); }
+    
+    .hero-overlay { 
+      position: absolute; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 50%, transparent 100%); 
+      padding: 32px 24px 24px; 
+    }
+    
+    .hero-label { 
+      font-family: var(--mono); 
+      font-size: 0.6rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.1em; 
+      color: var(--accent); 
+      margin-bottom: 10px; 
+    }
+    .hero-title { 
+      font-family: var(--sans); 
+      font-size: 1.8rem; 
+      font-weight: 800; 
+      color: var(--text-bright); 
+      line-height: 1.2; 
+      margin-bottom: 12px; 
+    }
+    .hero-summary { 
+      font-family: var(--mono); 
+      font-size: 0.85rem; 
+      color: var(--text); 
+      line-height: 1.6; 
+      margin-bottom: 12px; 
+    }
+    .hero-meta { 
+      display: flex; 
+      gap: 12px; 
+      align-items: center; 
+      flex-wrap: wrap;
+    }
     .hero-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .reading-time { 
+      font-family: var(--mono); 
+      font-size: 0.6rem; 
+      color: var(--text-dim); 
+      display: flex; 
+      align-items: center; 
+      gap: 4px;
+    }
 
-    /* Sidebar list */
-    .sidebar { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); overflow: hidden; }
-    .sidebar-header { font-family: var(--mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
-    .sidebar-item { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; align-items: flex-start; }
+    /* Sidebar */
+    .sidebar { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 0; 
+      border: 1px solid var(--border); 
+      border-radius: 12px; 
+      background: var(--surface); 
+      overflow: hidden; 
+      max-height: 450px;
+    }
+    .sidebar-header { 
+      font-family: var(--mono); 
+      font-size: 0.65rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.1em; 
+      color: var(--text-dim); 
+      padding: 14px 16px 10px; 
+      border-bottom: 1px solid var(--border); 
+    }
+    .sidebar-item { 
+      display: flex; 
+      gap: 12px; 
+      padding: 14px 16px; 
+      border-bottom: 1px solid var(--border); 
+      cursor: pointer; 
+      transition: background 0.15s; 
+      align-items: flex-start; 
+    }
     .sidebar-item:last-child { border-bottom: none; }
     .sidebar-item:hover { background: var(--surface-2); }
-    .sidebar-thumb { width: 72px; height: 50px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+    .sidebar-thumb { 
+      width: 72px; 
+      height: 50px; 
+      border-radius: 6px; 
+      object-fit: cover; 
+      flex-shrink: 0; 
+    }
     .sidebar-text { flex: 1; min-width: 0; }
-    .sidebar-title { font-family: var(--sans); font-size: 0.82rem; font-weight: 700; color: var(--text-bright); line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .sidebar-title { 
+      font-family: var(--sans); 
+      font-size: 0.82rem; 
+      font-weight: 700; 
+      color: var(--text-bright); 
+      line-height: 1.3; 
+      margin-bottom: 4px; 
+      display: -webkit-box; 
+      -webkit-line-clamp: 2; 
+      -webkit-box-orient: vertical; 
+      overflow: hidden; 
+    }
     .sidebar-date { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); }
 
-    /* ── MORE STORIES GRID ── */
+    /* Trending strip */
+    .trending-section { margin-bottom: 40px; }
+    .trending-header { 
+      font-family: var(--mono); 
+      font-size: 0.7rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.1em; 
+      color: var(--text-dim); 
+      padding-bottom: 10px; 
+      margin-bottom: 16px;
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+    }
+    .trending-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+    .trending-strip { 
+      display: flex; 
+      gap: 16px; 
+      overflow-x: auto; 
+      scroll-behavior: smooth;
+      padding-bottom: 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .trending-strip::-webkit-scrollbar { height: 6px; }
+    .trending-strip::-webkit-scrollbar-track { background: transparent; }
+    .trending-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .trending-strip::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+    
+    .trending-card { 
+      flex: 0 0 280px; 
+      border: 1px solid var(--border); 
+      border-radius: 10px; 
+      background: var(--surface); 
+      overflow: hidden; 
+      cursor: pointer; 
+      transition: all 0.2s; 
+    }
+    .trending-card:hover { 
+      border-color: var(--accent); 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255,92,92,0.1);
+    }
+    .trending-card-img { width: 100%; height: 140px; object-fit: cover; }
+    .trending-card-content { padding: 14px; }
+    .trending-card-title { 
+      font-family: var(--sans); 
+      font-size: 0.9rem; 
+      font-weight: 700; 
+      color: var(--text-bright); 
+      line-height: 1.3; 
+      margin-bottom: 6px;
+      display: -webkit-box; 
+      -webkit-line-clamp: 2; 
+      -webkit-box-orient: vertical; 
+      overflow: hidden; 
+    }
+    .trending-card-meta { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 8px;
+    }
+
+    /* Newsletter CTA */
+    .newsletter-cta { 
+      background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+      border: 1px solid var(--border); 
+      border-radius: 12px; 
+      padding: 24px 28px; 
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .newsletter-text { flex: 1; min-width: 250px; }
+    .newsletter-title { 
+      font-family: var(--sans); 
+      font-size: 1.1rem; 
+      font-weight: 700; 
+      color: var(--text-bright); 
+      margin-bottom: 6px;
+    }
+    .newsletter-subtitle { 
+      font-family: var(--mono); 
+      font-size: 0.75rem; 
+      color: var(--text-dim); 
+    }
+    .newsletter-input-group { 
+      display: flex; 
+      gap: 10px; 
+      flex: 1;
+      min-width: 250px;
+    }
+    .newsletter-input { 
+      flex: 1;
+      padding: 10px 14px; 
+      font-family: var(--mono); 
+      font-size: 0.8rem; 
+      background: var(--black); 
+      border: 1px solid var(--border); 
+      border-radius: 8px; 
+      color: var(--text-bright); 
+    }
+    .newsletter-input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .newsletter-btn { 
+      padding: 10px 20px; 
+      font-family: var(--mono); 
+      font-size: 0.75rem; 
+      background: var(--accent); 
+      color: white; 
+      border: none; 
+      border-radius: 8px; 
+      cursor: not-allowed; 
+      opacity: 0.6;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* More Stories Grid */
     .more-section { margin-top: 8px; }
-    .section-header { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .section-header { 
+      font-family: var(--mono); 
+      font-size: 0.7rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.1em; 
+      color: var(--text-dim); 
+      padding-bottom: 10px; 
+      border-bottom: 1px solid var(--border); 
+      margin-bottom: 16px; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px; 
+    }
     .section-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-    .more-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    .more-grid { 
+      display: grid; 
+      grid-template-columns: 1fr; 
+      gap: 16px; 
+      margin-bottom: 32px;
+    }
     @media (min-width: 600px) { .more-grid { grid-template-columns: 1fr 1fr; } }
     @media (min-width: 900px) { .more-grid { grid-template-columns: 1fr 1fr 1fr; } }
 
-    /* Standard card */
-    .card { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); overflow: hidden; cursor: pointer; transition: border-color 0.15s; display: flex; flex-direction: column; }
-    .card:hover { border-color: var(--accent); }
-    .card.expanded { cursor: default; grid-column: 1 / -1; }
-    .card-img { width: 100%; height: 160px; object-fit: cover; }
+    /* Card */
+    .card { 
+      border: 1px solid var(--border); 
+      border-radius: 10px; 
+      background: var(--surface); 
+      overflow: hidden; 
+      cursor: pointer; 
+      transition: all 0.3s ease; 
+      display: flex; 
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .card.fade-in {
+      animation: fadeInUp 0.5s ease forwards;
+    }
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .card:hover { 
+      border-color: var(--accent); 
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(255,92,92,0.12);
+    }
+    .card.expanded { 
+      cursor: default; 
+      grid-column: 1 / -1;
+      transform: translateY(0);
+    }
+    .card-img { width: 100%; height: 180px; object-fit: cover; }
     .card-content { padding: 16px; flex: 1; display: flex; flex-direction: column; }
-    .card-title { font-family: var(--sans); font-size: 0.95rem; font-weight: 700; color: var(--text-bright); line-height: 1.3; margin-bottom: 6px; }
-    .card-summary { font-family: var(--mono); font-size: 0.72rem; color: var(--text); line-height: 1.5; flex: 1; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-    .card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .card-title { 
+      font-family: var(--sans); 
+      font-size: 0.95rem; 
+      font-weight: 700; 
+      color: var(--text-bright); 
+      line-height: 1.3; 
+      margin-bottom: 8px; 
+    }
+    .card-summary { 
+      font-family: var(--mono); 
+      font-size: 0.72rem; 
+      color: var(--text); 
+      line-height: 1.5; 
+      flex: 1; 
+      margin-bottom: 12px; 
+      display: -webkit-box; 
+      -webkit-line-clamp: 3; 
+      -webkit-box-orient: vertical; 
+      overflow: hidden; 
+    }
+    .card-footer { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      gap: 10px;
+    }
+    .card-meta { 
+      display: flex; 
+      gap: 10px; 
+      align-items: center; 
+      flex-wrap: wrap;
+      flex: 1;
+    }
     .card-date { font-family: var(--mono); font-size: 0.55rem; color: var(--text-dim); }
     .card-tags { display: flex; gap: 4px; flex-wrap: wrap; }
-    .tag { font-family: var(--mono); font-size: 0.5rem; padding: 2px 6px; border-radius: 8px; background: var(--accent-dim); color: var(--accent); text-transform: uppercase; letter-spacing: 0.03em; }
+    .tag { 
+      font-family: var(--mono); 
+      font-size: 0.5rem; 
+      padding: 3px 7px; 
+      border-radius: 8px; 
+      background: var(--accent-dim); 
+      color: var(--accent); 
+      text-transform: uppercase; 
+      letter-spacing: 0.03em; 
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .share-btn {
+      padding: 6px 10px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .share-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
-    /* Article body (expanded) */
-    .article-body { display: none; padding: 20px 24px 24px; border-top: 1px solid var(--border); }
+    /* Article body */
+    .article-body { 
+      display: none; 
+      padding: 20px 24px 24px; 
+      border-top: 1px solid var(--border); 
+    }
     .expanded .article-body { display: block; }
-    .article-body h1, .article-body h2, .article-body h3, .article-body h4 { font-family: var(--sans); color: var(--text-bright); margin: 20px 0 8px; }
+    .article-body h1, .article-body h2, .article-body h3, .article-body h4 { 
+      font-family: var(--sans); 
+      color: var(--text-bright); 
+      margin: 20px 0 8px; 
+    }
     .article-body h2 { font-size: 1.2rem; }
     .article-body h3 { font-size: 1rem; }
-    .article-body p { font-size: 0.85rem; line-height: 1.7; margin-bottom: 12px; color: var(--text); }
+    .article-body p { 
+      font-size: 0.85rem; 
+      line-height: 1.7; 
+      margin-bottom: 12px; 
+      color: var(--text); 
+    }
     .article-body strong { color: var(--text-bright); }
     .article-body a { color: var(--accent); }
     .article-body ul { padding-left: 20px; margin-bottom: 12px; }
-    .article-body li { font-size: 0.85rem; line-height: 1.7; color: var(--text); margin-bottom: 4px; }
-    .article-body code { font-family: var(--code); font-size: 0.8rem; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
-    .article-body pre { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 12px; overflow-x: auto; }
-    .article-body pre code { background: none; padding: 0; font-size: 0.78rem; color: var(--text); }
-    .article-body blockquote { border-left: 3px solid var(--accent); padding-left: 16px; margin: 12px 0; color: var(--text-dim); font-style: italic; }
-    .article-body table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-family: var(--mono); font-size: 0.75rem; }
-    .article-body td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
-    .article-body hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-    .collapse-btn { font-family: var(--mono); font-size: 0.7rem; color: var(--text-dim); background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; cursor: pointer; margin-top: 16px; transition: all 0.15s; }
-    .collapse-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .article-body li { 
+      font-size: 0.85rem; 
+      line-height: 1.7; 
+      color: var(--text); 
+      margin-bottom: 4px; 
+    }
+    .article-body code { 
+      font-family: var(--code); 
+      font-size: 0.8rem; 
+      background: var(--surface-2); 
+      padding: 2px 6px; 
+      border-radius: 4px; 
+      color: var(--accent); 
+    }
+    .article-body pre { 
+      background: var(--surface-2); 
+      border: 1px solid var(--border); 
+      border-radius: 8px; 
+      padding: 16px; 
+      margin-bottom: 12px; 
+      overflow-x: auto; 
+    }
+    .article-body pre code { 
+      background: none; 
+      padding: 0; 
+      font-size: 0.78rem; 
+      color: var(--text); 
+    }
+    .article-body blockquote { 
+      border-left: 3px solid var(--accent); 
+      padding-left: 16px; 
+      margin: 12px 0; 
+      color: var(--text-dim); 
+      font-style: italic; 
+    }
+    .article-body table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 12px; 
+      font-family: var(--mono); 
+      font-size: 0.75rem; 
+    }
+    .article-body td { 
+      padding: 8px 12px; 
+      border-bottom: 1px solid var(--border); 
+      color: var(--text); 
+    }
+    .article-body hr { 
+      border: none; 
+      border-top: 1px solid var(--border); 
+      margin: 20px 0; 
+    }
+    .collapse-btn { 
+      font-family: var(--mono); 
+      font-size: 0.7rem; 
+      color: var(--text-dim); 
+      background: none; 
+      border: 1px solid var(--border); 
+      border-radius: 6px; 
+      padding: 6px 14px; 
+      cursor: pointer; 
+      margin-top: 16px; 
+      transition: all 0.15s; 
+    }
+    .collapse-btn:hover { 
+      border-color: var(--accent); 
+      color: var(--accent); 
+    }
+
+    /* Load More */
+    .load-more-container { 
+      text-align: center; 
+      margin: 40px 0;
+    }
+    .load-more-btn {
+      padding: 12px 32px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-bright);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .load-more-btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    .load-more-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Back to top */
+    .back-to-top {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 50px;
+      height: 50px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      color: var(--text-bright);
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      opacity: 0;
+      visibility: hidden;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back-to-top.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .back-to-top:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(255,92,92,0.3);
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      right: 30px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-bright);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 1001;
+    }
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+    }
 
     /* Footer */
-    .footer { border-top: 1px solid var(--border); padding: 24px; text-align: center; font-family: var(--mono); font-size: 0.65rem; color: var(--text-dim); }
+    .footer { 
+      border-top: 1px solid var(--border); 
+      padding: 24px; 
+      text-align: center; 
+      font-family: var(--mono); 
+      font-size: 0.65rem; 
+      color: var(--text-dim); 
+    }
     .footer a { color: var(--text-dim); }
     .footer a:hover { color: var(--accent); }
+    .footer-stats {
+      margin-bottom: 12px;
+      color: var(--text);
+    }
 
-    /* Empty */
-    .empty { text-align: center; padding: 60px 24px; grid-column: 1 / -1; }
+    /* Empty state */
+    .empty { 
+      text-align: center; 
+      padding: 60px 24px; 
+      grid-column: 1 / -1; 
+    }
     .empty-emoji { font-size: 3rem; margin-bottom: 12px; }
-    .empty h2 { font-family: var(--sans); font-size: 1.2rem; color: var(--text-bright); margin-bottom: 8px; }
+    .empty h2 { 
+      font-family: var(--sans); 
+      font-size: 1.2rem; 
+      color: var(--text-bright); 
+      margin-bottom: 8px; 
+    }
     .empty p { font-size: 0.85rem; color: var(--text-dim); }
 
-    @media (max-width: 600px) {
-      .hero-img { height: 200px; }
-      .hero-title { font-size: 1.3rem; }
-      .hero-content { padding: 16px; }
+    /* Mobile */
+    @media (max-width: 768px) {
+      .hero-img-container { height: 280px; }
+      .hero-title { font-size: 1.4rem; }
+      .hero-overlay { padding: 20px 16px 16px; }
+      .newsletter-cta { 
+        flex-direction: column; 
+        padding: 20px;
+      }
+      .newsletter-input-group {
+        flex-direction: column;
+        width: 100%;
+      }
+      .trending-card { flex: 0 0 240px; }
+      .back-to-top {
+        width: 45px;
+        height: 45px;
+        bottom: 20px;
+        right: 20px;
+      }
     }
   </style>
 </head>
@@ -167,93 +737,248 @@
       <span class="article-count" id="article-count"></span>
     </div>
 
+    <div class="search-container">
+      <input 
+        type="text" 
+        id="search-input" 
+        class="search-input" 
+        placeholder="Search articles..."
+      />
+    </div>
+
     <div class="tags-bar" id="tags-bar"></div>
 
     <!-- Hero + Sidebar -->
     <div id="hero-section"></div>
 
+    <!-- Trending -->
+    <div id="trending-section"></div>
+
+    <!-- Newsletter CTA -->
+    <div class="newsletter-cta">
+      <div class="newsletter-text">
+        <div class="newsletter-title">Get AI news in your inbox</div>
+        <div class="newsletter-subtitle">Coming soon</div>
+      </div>
+      <div class="newsletter-input-group">
+        <input 
+          type="email" 
+          class="newsletter-input" 
+          placeholder="your@email.com" 
+          disabled
+        />
+        <button class="newsletter-btn" disabled>Subscribe</button>
+      </div>
+    </div>
+
     <!-- More Stories -->
     <div id="more-section"></div>
+
+    <!-- Load More -->
+    <div class="load-more-container" id="load-more-container" style="display: none;">
+      <button class="load-more-btn" id="load-more-btn">Load More Articles</button>
+    </div>
   </div>
 
+  <!-- Back to top button -->
+  <button class="back-to-top" id="back-to-top">↑</button>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
   <div class="footer">
+    <div class="footer-stats" id="footer-stats"></div>
     <a href="/">vibeclaw.dev</a> · <a href="/forge">Forge</a> · <a href="/library">Library</a> · <a href="https://github.com/jasonkneen/vibeclaw">GitHub</a>
   </div>
 
   <script>
+    const TAG_ICONS = {
+      models: '🤖',
+      news: '📰',
+      openclaw: '🦞',
+      tutorial: '📖',
+      comparison: '⚔️',
+      'think-piece': '💡',
+      guide: '📚',
+      legal: '⚖️',
+      reasoning: '🧠',
+      'open-source': '🌐',
+      review: '⭐',
+      explainer: '💬',
+      release: '🚀',
+      changelog: '📝',
+      'vibe-coding': '✨',
+      industry: '🏢',
+      microsoft: '🪟',
+      google: '🔍',
+      meta: '👁️',
+      alibaba: '🛒',
+      mistral: '🌬️',
+      deepseek: '🔭',
+      pricing: '💰',
+      agents: '🤖',
+      browser: '🌐',
+      devops: '⚙️',
+      coding: '💻',
+      automation: '🔧',
+      protocol: '📡',
+      mcp: '🔌',
+      multilingual: '🌍',
+      hardware: '🔧',
+      wearables: '⌚',
+      'video-ai': '🎬',
+      copyright: '©️',
+      ethics: '🤔',
+      chatgpt: '💬',
+      openai: '🧠',
+      'free-models': '🆓',
+      openrouter: '🔀'
+    };
+
     let articles = [];
     let activeTag = null;
+    let searchQuery = '';
+    let visibleCount = 12;
+    let observer = null;
 
     async function loadArticles() {
       try {
         const resp = await fetch('/news-data.json');
         articles = await resp.json();
       } catch { articles = []; }
+      
+      // Update footer stats
+      const statsEl = document.getElementById('footer-stats');
+      if (statsEl) {
+        statsEl.textContent = `${articles.length} articles · Updated daily · Powered by VibeClaw`;
+      }
+
       renderTags();
       render();
+      setupScrollEffects();
+    }
+
+    function calculateReadingTime(html) {
+      const text = html.replace(/<[^>]*>/g, ' ');
+      const words = text.trim().split(/\s+/).length;
+      const minutes = Math.ceil(words / 200);
+      return `${minutes} min read`;
+    }
+
+    function filterArticles() {
+      let filtered = articles;
+      
+      if (activeTag) {
+        filtered = filtered.filter(a => a.tags.includes(activeTag));
+      }
+      
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filtered = filtered.filter(a => 
+          a.title.toLowerCase().includes(query) || 
+          a.summary.toLowerCase().includes(query) ||
+          a.tags.some(t => t.toLowerCase().includes(query))
+        );
+      }
+      
+      return filtered;
     }
 
     function renderTags() {
       const allTags = [...new Set(articles.flatMap(a => a.tags))].sort();
       const bar = document.getElementById('tags-bar');
       bar.innerHTML = `<button class="tag-btn ${!activeTag ? 'active' : ''}" onclick="filterTag(null)">All</button>` +
-        allTags.map(t => `<button class="tag-btn ${activeTag === t ? 'active' : ''}" onclick="filterTag('${t}')">${t}</button>`).join('');
+        allTags.map(t => {
+          const icon = TAG_ICONS[t] || '';
+          return `<button class="tag-btn ${activeTag === t ? 'active' : ''}" onclick="filterTag('${t}')">${icon} ${t}</button>`;
+        }).join('');
     }
 
     function filterTag(tag) {
       activeTag = tag;
+      visibleCount = 12;
       renderTags();
       render();
     }
 
     function fmtDate(d) {
-      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    function tagHtml(tags) {
-      return tags.slice(0, 2).map(t => `<span class="tag">${t}</span>`).join('');
+    function tagHtml(tags, limit = 2) {
+      return tags.slice(0, limit).map(t => {
+        const icon = TAG_ICONS[t] || '';
+        return `<span class="tag">${icon ? icon + ' ' : ''}${t}</span>`;
+      }).join('');
     }
 
     function bodyHtml(a) {
       return `<div class="article-body">${a.html}<button class="collapse-btn" onclick="collapseArticle('${a.slug}', event)">↑ Collapse</button></div>`;
     }
 
+    function shareArticle(slug, event) {
+      event.stopPropagation();
+      const url = `https://vibeclaw.dev/news#${slug}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Link copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy link');
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2000);
+    }
+
     function render() {
-      const filtered = activeTag ? articles.filter(a => a.tags.includes(activeTag)) : articles;
+      const filtered = filterArticles();
       const countEl = document.getElementById('article-count');
       if (countEl) countEl.textContent = `${filtered.length} article${filtered.length !== 1 ? 's' : ''}`;
 
       const heroEl = document.getElementById('hero-section');
+      const trendingEl = document.getElementById('trending-section');
       const moreEl = document.getElementById('more-section');
+      const loadMoreContainer = document.getElementById('load-more-container');
 
       if (!filtered.length) {
         heroEl.innerHTML = '';
-        moreEl.innerHTML = `<div class="empty"><div class="empty-emoji">🔍</div><h2>No articles found</h2><p>Try a different tag.</p></div>`;
+        trendingEl.innerHTML = '';
+        moreEl.innerHTML = `<div class="empty"><div class="empty-emoji">🔍</div><h2>No articles found</h2><p>Try a different search or tag.</p></div>`;
+        loadMoreContainer.style.display = 'none';
         return;
       }
 
-      // Hero = first article, sidebar = next 4, rest = grid
+      // Hero + Sidebar
       const hero = filtered[0];
       const sidebar = filtered.slice(1, 5);
-      const rest = filtered.slice(5);
-
+      
       const heroImg = hero.image && hero.image.startsWith('/');
-
+      
       heroEl.innerHTML = `
         <div class="hero-section">
           <div class="hero-card" id="article-${hero.slug}" onclick="toggleArticle('${hero.slug}')">
-            ${heroImg ? `<img class="hero-img" src="${hero.image}" alt="${hero.title}" loading="lazy">` : ''}
-            <div class="hero-content">
-              <div class="hero-label">Featured · ${fmtDate(hero.date)}</div>
-              <div class="hero-title">${hero.title}</div>
-              <div class="hero-summary">${hero.summary}</div>
-              <div class="hero-tags">${tagHtml(hero.tags)}</div>
+            <div class="hero-img-container">
+              ${heroImg ? `<img class="hero-img" src="${hero.image}" alt="${hero.title}" loading="lazy">` : ''}
+              <div class="hero-overlay">
+                <div class="hero-label">Featured · ${fmtDate(hero.date)}</div>
+                <div class="hero-title">${hero.title}</div>
+                <div class="hero-summary">${hero.summary}</div>
+                <div class="hero-meta">
+                  <div class="reading-time">⏱ ${calculateReadingTime(hero.html)}</div>
+                  <div class="hero-tags">${tagHtml(hero.tags, 3)}</div>
+                </div>
+              </div>
             </div>
             ${bodyHtml(hero)}
           </div>
           ${sidebar.length ? `
           <div class="sidebar">
-            <div class="sidebar-header">Latest</div>
+            <div class="sidebar-header">Latest Stories</div>
             ${sidebar.map(a => {
               const img = a.image && a.image.startsWith('/');
               return `
@@ -261,21 +986,43 @@
                 ${img ? `<img class="sidebar-thumb" src="${a.image}" alt="" loading="lazy">` : ''}
                 <div class="sidebar-text">
                   <div class="sidebar-title">${a.title}</div>
-                  <div class="sidebar-date">${fmtDate(a.date)}</div>
+                  <div class="sidebar-date">${fmtDate(a.date)} · ${calculateReadingTime(a.html)}</div>
                 </div>
               </div>`;
             }).join('')}
           </div>` : ''}
         </div>`;
 
-      if (!rest.length && !sidebar.length) {
-        moreEl.innerHTML = '';
-        return;
+      // Trending (most recent 5, skip hero)
+      const trending = filtered.slice(1, 6);
+      if (trending.length > 0) {
+        trendingEl.innerHTML = `
+          <div class="trending-section">
+            <div class="trending-header"><span class="trending-dot"></span>Trending Now</div>
+            <div class="trending-strip">
+              ${trending.map(a => {
+                const img = a.image && a.image.startsWith('/');
+                return `
+                <div class="trending-card" onclick="scrollToArticle('${a.slug}')">
+                  ${img ? `<img class="trending-card-img" src="${a.image}" alt="${a.title}" loading="lazy">` : ''}
+                  <div class="trending-card-content">
+                    <div class="trending-card-title">${a.title}</div>
+                    <div class="trending-card-meta">
+                      <span class="card-date">${fmtDate(a.date)}</span>
+                      <span class="reading-time">⏱ ${calculateReadingTime(a.html)}</span>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      } else {
+        trendingEl.innerHTML = '';
       }
 
-      // Combine sidebar + rest for the grid below
-      const gridItems = [...sidebar, ...rest];
-
+      // More Stories Grid (skip hero)
+      const gridItems = filtered.slice(1);
+      
       // Group by date
       const groups = {};
       for (const a of gridItems) {
@@ -283,13 +1030,24 @@
         groups[a.date].push(a);
       }
 
+      const sortedDates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+      
       let html = '';
-      for (const [date, items] of Object.entries(groups)) {
+      let itemCount = 0;
+      
+      for (const date of sortedDates) {
+        const items = groups[date];
         const d = new Date(date);
-        const label = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+        const label = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        
+        const visibleItems = items.filter((_, idx) => itemCount + idx < visibleCount);
+        itemCount += items.length;
+        
+        if (visibleItems.length === 0) continue;
+        
         html += `<div class="section-header"><span class="section-dot"></span>${label}</div>`;
         html += `<div class="more-grid">`;
-        html += items.map(a => {
+        html += visibleItems.map(a => {
           const img = a.image && a.image.startsWith('/');
           return `
           <div class="card" id="article-${a.slug}" onclick="toggleArticle('${a.slug}')">
@@ -298,8 +1056,14 @@
               <div class="card-title">${a.title}</div>
               <div class="card-summary">${a.summary}</div>
               <div class="card-footer">
-                <span class="card-date">${fmtDate(a.date)}</span>
-                <div class="card-tags">${tagHtml(a.tags)}</div>
+                <div class="card-meta">
+                  <span class="card-date">${fmtDate(a.date)}</span>
+                  <span class="reading-time">⏱ ${calculateReadingTime(a.html)}</span>
+                  <div class="card-tags">${tagHtml(a.tags)}</div>
+                </div>
+                <button class="share-btn" onclick="shareArticle('${a.slug}', event)" title="Share article">
+                  <span>🔗</span>
+                </button>
               </div>
             </div>
             ${bodyHtml(a)}
@@ -309,6 +1073,32 @@
       }
 
       moreEl.innerHTML = `<div class="more-section">${html}</div>`;
+
+      // Load more button
+      if (gridItems.length > visibleCount) {
+        loadMoreContainer.style.display = 'block';
+        document.getElementById('load-more-btn').disabled = false;
+      } else {
+        loadMoreContainer.style.display = 'none';
+      }
+
+      // Trigger fade-in animations
+      setTimeout(() => {
+        const cards = document.querySelectorAll('.card');
+        cards.forEach((card, idx) => {
+          setTimeout(() => {
+            card.classList.add('fade-in');
+          }, idx * 50);
+        });
+      }, 100);
+
+      // Re-setup intersection observer
+      setupIntersectionObserver();
+    }
+
+    function loadMore() {
+      visibleCount += 12;
+      render();
     }
 
     function toggleArticle(slug) {
@@ -333,6 +1123,62 @@
       }
     }
 
+    function setupScrollEffects() {
+      const backToTop = document.getElementById('back-to-top');
+      const tagsBar = document.getElementById('tags-bar');
+      
+      window.addEventListener('scroll', () => {
+        // Back to top button
+        if (window.scrollY > 500) {
+          backToTop.classList.add('visible');
+        } else {
+          backToTop.classList.remove('visible');
+        }
+        
+        // Sticky tags bar effect
+        if (window.scrollY > 200) {
+          tagsBar.classList.add('stuck');
+        } else {
+          tagsBar.classList.remove('stuck');
+        }
+      });
+      
+      backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    function setupIntersectionObserver() {
+      if (observer) observer.disconnect();
+      
+      observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('fade-in');
+          }
+        });
+      }, {
+        threshold: 0.1,
+        rootMargin: '50px'
+      });
+      
+      document.querySelectorAll('.card').forEach(card => {
+        observer.observe(card);
+      });
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      visibleCount = 12;
+      render();
+    });
+
+    // Load more button
+    document.getElementById('load-more-btn').addEventListener('click', loadMore);
+
+    // Initialize
     loadArticles();
   </script>
 </body>
