@@ -842,10 +842,19 @@
     let observer = null;
 
     async function loadArticles() {
+      // Try API first (dynamic from DB), fall back to static JSON
+      let dynamic = [], static_ = [];
       try {
-        const resp = await fetch('/news-data.json');
-        articles = await resp.json();
-      } catch { articles = []; }
+        const [apiRes, jsonRes] = await Promise.allSettled([
+          fetch('/api/articles').then(r => r.ok ? r.json() : []),
+          fetch('/news-data.json').then(r => r.ok ? r.json() : [])
+        ]);
+        if (apiRes.status === 'fulfilled') dynamic = apiRes.value || [];
+        if (jsonRes.status === 'fulfilled') static_ = jsonRes.value || [];
+      } catch {}
+      const slugs = new Set(dynamic.map(a => a.slug));
+      articles = [...dynamic, ...static_.filter(a => !slugs.has(a.slug))];
+      articles.sort((a, b) => new Date(b.date) - new Date(a.date));
       
       // Update footer stats
       const statsEl = document.getElementById('footer-stats');
