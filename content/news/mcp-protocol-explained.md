@@ -69,3 +69,9 @@ And hundreds more. The composability is the killer feature — combine a GitHub 
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [MCP Server Registry](https://github.com/modelcontextprotocol/servers)
 - [Build agents with MCP at VibeClaw](https://vibeclaw.dev/forge)
+
+## Sources
+
+1. [Model Context Protocol Official Specification](https://modelcontextprotocol.io/)
+2. [MCP Server Registry on GitHub](https://github.com/modelcontextprotocol/servers)
+3. [Anthropic - Introducing Model Context Protocol](https://www.anthropic.com/news/model-context-protocol)
